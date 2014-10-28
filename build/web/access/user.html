@@ -1,0 +1,1187 @@
+<html>
+<head>
+<title>
+Quest | User
+</title>
+  <link rel="stylesheet" href="../themes/base/jquery.ui.all.css">
+	<script src="../js/jquery-1.7.2.js"></script>
+	<script src="../ui/jquery.ui.core.js"></script>
+	<script src="../ui/jquery.ui.widget.js"></script>
+	<script src="../ui/jquery.ui.button.js"></script>
+        <script src="../ui/jquery.ui.position.js"></script>
+	<script src="../ui/jquery.ui.autocomplete.js"></script>
+        <script type="text/javascript" src="files/util.js"></script>
+         <script src="scripts/ui.js" type="text/javascript"></script>
+	<link rel="stylesheet" href="../css/demos.css">
+	<style>
+	.ui-button { margin-left: -1px; }
+	.ui-button-icon-only .ui-button-text { padding: 0.35em; } 
+	.ui-autocomplete-input { margin: 0; padding: 0.48em 0 0.47em 0.45em; }
+	</style>	
+	 <link rel="stylesheet" type="text/css" href="files/access.css" />
+         <script type="text/javascript">
+         var groups=[];
+	 var privileges=[];
+         var applications=[];
+         var serverUrl='/web/server';
+       function createUser(){ 
+         var name=getValue("username");
+         var host=getValue("host");
+         var preGroup=getValue("pgroup");
+         var ugroup=getValue("ugroup"); 
+            if(name=="" || name==null){
+              parent.setInfo("Username is required",true);
+              focus("username");
+              return
+            }
+            if(host=="" || host==null){
+               parent.setInfo("Host is required",true);
+               focus("host");
+              return
+            }
+            var conf=confirm("Create user ?");
+             if(!conf){
+              return;   
+             }
+            var privs=getMultipleEntries("privileges");
+           
+            var json={
+                 request_header : {
+                     request_msg : "create_user",
+                     request_svc :"user_service"
+                  },
+                  
+                  request_object : {
+                     name : name,
+                     host : host,
+                     preset_group : preGroup,
+                     group : ugroup,
+                     privs:privs
+                    
+                  }
+              }
+              
+               Ajax.run({
+                  url : serverUrl,
+                  type : "post",
+                  data : json,
+                  error : function(err){
+                     parent.setInfo("An error occurred when attempting to create user account ",false);
+                  },
+                  success : function(json){
+                     if(json.message=="serial"){
+                        alert("user account not created,action needs verification,serial: "+json.response.data);
+                     }
+                     else if(json.response.data=="success"){
+                         parent.setInfo("User created successfully",false);  
+                     }
+                    else{
+                     parent.setInfo("User creation failed :"+json.response.ex_reason,false);    
+                  }
+                } 
+          });
+      }
+
+
+
+
+
+
+
+
+  
+
+
+ 
+
+ 
+  
+
+
+
+  function viewUser(){
+      var name=getValue("edit_username");
+      if(name==null || name==""){
+          parent.setInfo("Username is required",true);
+          focus("edit_username");
+          return;
+       }
+       
+       depopulateSelect("user_privileges");
+       var json={
+                 request_header : {
+                     request_msg : "edit_screen_details",
+                     request_svc :"user_service"
+                  },
+                  
+                  request_object : {
+                     name : name
+                  }
+              }
+              
+               Ajax.run({
+                  url : serverUrl,
+                  type : "post",
+                  data : json,
+                  error : function(err){
+                     parent.setInfo("An error occurred when attempting to view user ",false);
+                  },
+                  success : function(json){
+                    var details=json.response.data;
+                     if(json.response.type=="exception"){
+                         parent.setInfo(json.response.ex_reason,true);
+                         setValue("edit_host","");
+                         setValue("edit_ugroup","")
+                         setValue("edit_id","")
+                         setValue("edit_rank","")
+                         setValue("edit_disabled","")
+                         setValue("edit_loggedin","")
+                         setValue("edit_created","") 
+                        return;
+                    }
+                    setValue("edit_host",details.host);
+                    setValue("edit_ugroup",details.group)
+                    setValue("edit_id",details.id)
+                    setValue("edit_rank",details.sup)
+                    setValue("edit_disabled",details.disabled)
+                    setValue("edit_loggedin",details.loggedin)
+                    setValue("edit_created",details.created)
+                    populateSelect("user_privileges", details.privileges, details.privileges);
+            } 
+          });
+       
+    
+   }
+   
+   
+
+   
+   
+    function editUser(){
+        var name=getValue("edit_username");
+        var host=getValue("edit_host");
+        var ugroup=getValue("edit_ugroup");
+	  
+            if(name=="" || name==null){
+              parent.setInfo("Username is required",true);
+              focus("edit_username");
+              return
+            }
+            if(host=="" || host==null){
+               parent.setInfo("Host is required",true);
+               focus("edit_host");
+              return
+            }
+             var conf=confirm("Edit user ?");
+             if(!conf){
+              return;   
+             }
+            var privs=getMultipleEntries("edit_all_privileges");
+            
+        var json={
+                 request_header : {
+                     request_msg : "edit_user",
+                     request_svc :"user_service"
+                  },
+                  
+                  request_object : {
+                     user_name : name,
+                     host : host,
+                     group : ugroup,
+                     privs:privs
+                  }
+              }
+              
+               Ajax.run({
+                  url : serverUrl,
+                  type : "post",
+                  data : json,
+                  error : function(err){
+                     parent.setInfo("An error occurred ",false);
+                  },
+                  success : function(json){
+                     var resp=json.response.data
+                     if(resp=="success"){
+                         parent.setInfo("User edited successfully",false);  
+                    }
+                    else if(resp=="fail"){
+                         parent.setInfo("User edit failed: "+json.response.ex_reason,false);
+                    }
+    
+                } 
+          });
+   }
+   
+  
+   
+   function enableUser(){
+        var name=getValue("edit_username");
+           if(name=="" || name==null){
+              parent.setInfo("Username is required",true);
+              focus("edit_username");
+              return;
+            } 
+           var conf=confirm("Enable user account ?");
+            if(!conf){
+              return;   
+            }
+         var json={
+                 request_header : {
+                     request_msg : "enable_user",
+                     request_svc :"user_service"
+                  },
+                  
+                  request_object : {
+                     name : name
+                  }
+              }
+              
+               Ajax.run({
+                  url : serverUrl,
+                  type : "post",
+                  data : json,
+                  error : function(err){
+                     parent.setInfo("An error occurred ",false);
+                  },
+                  success : function(json){
+                      if(json.response.data=="success"){
+                        parent.setInfo("User enabled successfully",false); 
+                    }
+                 else{
+                     parent.setInfo("User enable failed",false);    
+                    }
+                } 
+          });
+   }
+ 
+   
+   function disableUser(){
+        var name=getValue("edit_username");
+           if(name=="" || name==null){
+              parent.setInfo("Username is required",true);
+              focus("edit_username");
+              return;
+            } 
+           var conf=confirm("Disable user account ?");
+            if(!conf){
+            return;   
+            }
+         var json={
+                 request_header : {
+                     request_msg : "disable_user",
+                     request_svc :"user_service"
+                  },
+                  
+                  request_object : {
+                     name : name
+                  }
+              }
+              
+               Ajax.run({
+                  url : serverUrl,
+                  type : "post",
+                  data : json,
+                  error : function(err){
+                     parent.setInfo("An error occurred ",false);
+                  },
+                  success : function(json){
+                     var resp=json.response.data;
+                     if(resp=="success"){
+                        parent.setInfo("User disabled successfully",false); 
+                     }
+                    else if(resp=="fail"){
+                       parent.setInfo("User disable failed",false);   
+                    }
+                } 
+          });
+   }
+   
+
+   
+   
+    function deleteUser(){
+        var name=getValue("edit_username");
+           if(name=="" || name==null){
+              parent.setInfo("Username is required",true);
+              focus("edit_username");
+              return;
+            } 
+           var conf=confirm("Delete user account ?");
+            if(!conf){
+            return;   
+            }
+       var json={
+                 request_header : {
+                     request_msg : "delete_user",
+                     request_svc :"user_service"
+                  },
+                  
+                  request_object : {
+                     name : name
+                  }
+              }
+              
+               Ajax.run({
+                  url : serverUrl,
+                  type : "post",
+                  data : json,
+                  error : function(err){
+                     parent.setInfo("An error occurred",false);
+                  },
+                  success : function(json){
+                     var resp=json.response.data
+                     if(json.response.type=="exception"){
+                        parent.setInfo(json.response.ex_reason,true);  
+                     }
+                     else if(resp=="success"){
+                         parent.setInfo("User deleted successfully",true); 
+                    }
+                    else if(resp=="fail"){
+                       parent.setInfo("User delete failed: "+json.response.reason,true);   
+                     }
+                } 
+          });
+   }
+   
+
+   
+   
+    function undeleteUser(){
+        var name=getValue("edit_username");
+           if(name=="" || name==null){
+              parent.setInfo("Username is required",true);
+              focus("edit_username");
+              return;
+            } 
+           var conf=confirm("undelete user account ?");
+            if(!conf){
+             return;   
+            }
+         var json={
+                 request_header : {
+                     request_msg : "undelete_user",
+                     request_svc :"user_service"
+                  },
+                  
+                  request_object : {
+                     name : name
+                  }
+              }
+              
+               Ajax.run({
+                  url : serverUrl,
+                  type : "post",
+                  data : json,
+                  error : function(err){
+                     parent.setInfo("An error occurred ",false);
+                  },
+                  success : function(json){
+                    var resp=json.response.data;
+                     if(json.response.type=="exception"){
+                        parent.setInfo(json.response.ex_reason,true);  
+                     }
+                     if(resp=="success"){
+                         parent.setInfo("User undeleted successfully",true); 
+                    }
+                    else{
+                     parent.setInfo("User undelete failed",true);  
+                    }
+                } 
+          });
+   }
+   
+ 
+   
+   
+    function permanentDeleteUser(){
+           var name=getValue("edit_username");
+           if(name=="" || name==null){
+              parent.setInfo("Username is required",true);
+              focus("edit_username");
+              return;
+            } 
+           var conf=confirm("Permanently delete user account ? This action cannot be undone");
+            if(!conf){
+            return;   
+            }
+         var json={
+                 request_header : {
+                     request_msg : "permanent_delete_user",
+                     request_svc :"user_service"
+                  },
+                  
+                  request_object : {
+                     name : name
+                  }
+              }
+              
+               Ajax.run({
+                  url : serverUrl,
+                  type : "post",
+                  data : json,
+                  error : function(err){
+                     parent.setInfo("An error occurred ",false);
+                  },
+                  success : function(json){
+                    var resp=json.response.data
+                     if(json.response.type=="exception"){
+                        parent.setInfo(json.response.ex_reason,true);  
+                     }
+                     else if(resp=="success"){
+                         parent.setInfo("User deleted successfully",false); 
+                     }
+                     else if(resp=="fail"){
+                         parent.setInfo("User permanent delete failed",false);   
+                     }
+                } 
+          });
+   }
+   
+  
+   
+   
+   
+    function resetPass(){
+        var name=getValue("edit_username");
+           if(name=="" || name==null){
+              parent.setInfo("Username is required",true);
+              focus("edit_username");
+              return;
+            } 
+           var conf=confirm("Reset user password ?");
+            if(!conf){
+            return;   
+            }
+          var json={
+                 request_header : {
+                     request_msg : "reset_pass",
+                     request_svc :"user_service"
+                  },
+                  
+                  request_object : {
+                     name : name
+                  }
+              }
+              
+               Ajax.run({
+                  url : serverUrl,
+                  type : "post",
+                  data : json,
+                  error : function(err){
+                     parent.setInfo("An error occurred ",false);
+                  },
+                  success : function(json){
+                      var resp=json.response.data
+                     if(resp=="success"){
+                         parent.setInfo("User password reset successfully",false); 
+                    }
+                    else if(resp=="fail"){
+                         parent.setInfo("User password reset failed",false);   
+                     }
+                } 
+          });
+   }
+   
+   
+   
+   function grantPrivilege(){
+        var name=getValue("priv_name");
+         var priv=getValue("priv_grant");
+           if(name=="" || name==null){
+              parent.setInfo("Username is required",true);
+              focus("priv_name");
+              return;
+            } 
+            if(priv=="" || priv==null){
+              parent.setInfo("Privilege is required");
+              focus("priv_grant");
+              return;
+            } 
+
+           var conf=confirm("Grant privilege "+priv+" to "+name+" ?");
+           
+            if(!conf){
+            return;   
+            }
+    
+       var json={
+                 request_header : {
+                     request_msg : "grant_privilege",
+                     request_svc :"user_service"
+                  },
+                  
+                  request_object : {
+                     name : name,
+                     priv : priv
+                  }
+              }
+              
+               Ajax.run({
+                  url : serverUrl,
+                  type : "post",
+                  data : json,
+                  error : function(err){
+                     parent.setInfo("An error occurred ",false);
+                  },
+                  success : function(json){
+                       var resp=json.response.data;
+                     if(resp=="success"){
+                         parent.setInfo("Privilege granted successfully",false); 
+                      }
+                     else if(resp=="fail"){
+                         parent.setInfo("Error granting privilege: "+json.response.reason,false);   
+                    }
+                } 
+          });
+   }
+  
+   
+   function revokePrivilege(){
+       var name=getValue("priv_name");
+         var priv=getValue("priv_grant");
+           if(name=="" || name==null){
+              parent.setInfo("Username is required",true);
+              focus("priv_name");
+              return;
+            } 
+            if(priv=="" || priv==null){
+              parent.setInfo("Privilege is required",true);
+              focus("priv_grant");
+              return;
+            } 
+           var conf=confirm("Revoke privilege "+priv+" from "+name+" ?");
+            if(!conf){
+            return;   
+            }
+       var json={
+                 request_header : {
+                     request_msg : "revoke_privilege",
+                     request_svc :"user_service"
+                  },
+                  
+                  request_object : {
+                     name : name,
+                     priv : priv
+                  }
+              }
+              
+               Ajax.run({
+                  url : serverUrl,
+                  type : "post",
+                  data : json,
+                  error : function(err){
+                     parent.setInfo("An error occurred ",false);
+                  },
+                  success : function(json){
+                    var resp=json.response.data
+                     if(resp=="success"){
+                         parent.setInfo("Privilege revoked successfully",false); 
+                    }
+                    else if(resp=="fail"){
+                        parent.setInfo("Error revoking privilege: "+json.response.reason,false);   
+                    }
+                } 
+          });
+   }
+   
+
+   
+   
+   function grantApp(){
+      var name=getValue("app_user_name");
+      var app=getValue("app_grant");
+        if(name=="" || name==null){
+              parent.setInfo("Username is required",true);
+              focus("app_user_name");
+              return;
+        } 
+            if(app=="" || app==null){
+              parent.setInfo("Application name is required",true);
+              focus("app_grant");
+              return;
+            } 
+            
+         var conf=confirm("Grant access to "+app+" to user "+name+" ?");
+         if(!conf){
+          return;   
+        }
+         var json={
+             request_header :{
+                 request_msg : 'grant_app',
+                 request_svc : 'user_service'
+                 },
+                    
+            request_object : {
+                name : name,
+                app : app
+             } 
+          }
+     Ajax.run({
+                  url : serverUrl,
+                  type : "post",
+                  data : json,
+                  error : function(err){
+                     parent.setInfo("An error occurred ",false);
+                  },
+                  success : function(json){
+                     var resp=json.response.data
+                     if(resp=="success"){
+                         parent.setInfo("Access to application granted successfully",false); 
+                    }
+                     else if(resp=="fail"){
+                         parent.setInfo("Granting access to application failed",false);   
+                      }
+                } 
+          });
+   }
+     
+    
+ 
+   
+   
+      function revokeApp(){
+       var name=getValue("app_user_name");
+       var app=getValue("app_grant");
+        if(name=="" || name==null){
+              parent.setInfo("Username is required",true);
+              focus("app_user_name");
+              return;
+        } 
+            if(app=="" || app==null){
+              parent.setInfo("Application name is required",true);
+              focus("app_grant");
+              return;
+            } 
+            
+         var conf=confirm("Revoke access to "+app+" from user "+name+" ?");
+         if(!conf){
+          return;   
+        }
+        var json={
+             request_header :{
+                 quest_msg : 'revoke_app',
+                 quest_svc : 'user_service'
+                 },
+                    
+            request_object : {
+                name : name,
+                app : app
+             } 
+          }
+         Ajax.run({
+                  url : serverUrl,
+                  type : "post",
+                  data : json,
+                  error : function(err){
+                     parent.setInfo("An error occurred ",false);
+                  },
+                  success : function(json){
+                     var resp=json.response.data
+                     if(resp=="success"){
+                         parent.setInfo("Revoking access to application successful",false); 
+                       }
+                    else if(resp=="fail"){
+                        parent.setInfo("Revoking access to application failed",false);   
+                    }
+                } 
+          });
+   }
+     
+ 
+     
+      window.onload=function (){
+           var json={
+                 request_header : {
+                     request_msg : "all_user_groups",
+                     request_svc :"user_service"
+                  },
+                  
+                  request_object : {
+                  }
+              }
+             Ajax.run({
+                  url : serverUrl,
+                  type : "post",
+                  data : json,
+                  error : function(err){
+                     parent.setInfo("An error occurred ",false);
+                  },
+                  success : function(json){
+                    var arr=json.response.data;
+                    groups=arr;
+                    parent.frames[0].groups=groups;
+                } 
+             });
+               var json={
+                 request_header : {
+                     request_msg : "all_preset_names",
+                     request_svc :"user_service"
+                  },
+                  
+                  request_object : {
+                  }
+              }
+             Ajax.run({
+                  url : serverUrl,
+                  type : "post",
+                  data : json,
+                  error : function(err){
+                     parent.setInfo("An error occurred ",false);
+                  },
+                  success : function(json){
+                      var arr=json.response.data
+                      populateSelect("pgroup", arr, arr);
+                } 
+             });
+               var json={
+                 request_header : {
+                     request_msg : "all_privilege_names",
+                     request_svc :"user_service"
+                  },
+                  
+                  request_object : {
+                  }
+              }
+             Ajax.run({
+                  url : serverUrl,
+                  type : "post",
+                  data : json,
+                  error : function(err){
+                     parent.setInfo("An error occurred ",false);
+                  },
+                  success : function(json){
+                    privileges=json.response.data;
+                    parent.frames[0].privileges=privileges;
+                    populateSelect("priv_grant",privileges,privileges);
+                } 
+             });
+             
+         // OUT.pushOut(new Data(serverUrl,'form',qstring,'all_applications','privilege_service'),handleApplications);
+     }
+      
+      
+
+	  
+
+
+	$(function() {
+            $( "#user_privileges").combobox();
+	    $( "#pgroup").combobox();
+            $( "#priv_grant").combobox();
+		$( "#toggle" ).click(function() {
+			$( "#pgroup" ).toggle();
+		});
+		$( "#toggle" ).click(function() {
+			$( "#user_privileges" ).toggle();
+		});
+                $( "#toggle" ).click(function() {
+			$( "#priv_grant" ).toggle();
+		});
+              
+	});
+	
+	
+	
+	function completeGroup(group){
+	 $( group ).autocomplete({
+		source: groups
+	  });
+	}
+        
+
+        
+        
+        
+        
+
+//--------------------------------------------------------------------------------------------	  
+	  
+	  (function( $ ) {
+		$.widget( "ui.combobox", {
+			_create: function() {
+				var self = this,
+					select = this.element.hide(),
+					selected = select.children( ":selected" ),
+					value = selected.val() ? selected.text() : "";
+				var input = this.input = $( "<input>" )
+					.insertAfter( select )
+					.val( value )
+					.autocomplete({
+						delay: 0,
+						minLength: 0,
+						source: function( request, response ) {
+							var matcher = new RegExp( $.ui.autocomplete.escapeRegex(request.term), "i" );
+							response( select.children( "option" ).map(function() {
+								var text = $( this ).text();
+								if ( this.value && ( !request.term || matcher.test(text) ) )
+									return {
+										label: text.replace(
+											new RegExp(
+												"(?![^&;]+;)(?!<[^<>]*)(" +
+												$.ui.autocomplete.escapeRegex(request.term) +
+												")(?![^<>]*>)(?![^&;]+;)", "gi"
+											), "<strong>$1</strong>" ),
+										value: text,
+										option: this
+									};
+							}) );
+						},
+						select: function( event, ui ) {
+							ui.item.option.selected = true;
+							self._trigger( "selected", event, {
+								item: ui.item.option
+							});
+						},
+						change: function( event, ui ) {
+							if ( !ui.item ) {
+								var matcher = new RegExp( "^" + $.ui.autocomplete.escapeRegex( $(this).val() ) + "$", "i" ),
+									valid = false;
+								select.children( "option" ).each(function() {
+									if ( $( this ).text().match( matcher ) ) {
+										this.selected = valid = true;
+										return false;
+									}
+								});
+								if ( !valid ) {
+									// remove invalid value, as it didn't match anything
+									$( this ).val( "" );
+									select.val( "" );
+									input.data( "autocomplete" ).term = "";
+									return false;
+								}
+							}
+						}
+					})
+					.addClass( "ui-widget ui-widget-content ui-corner-left" );
+
+				input.data( "autocomplete" )._renderItem = function( ul, item ) {
+					return $( "<li></li>" )
+						.data( "item.autocomplete", item )
+						.append( "<a>" + item.label + "</a>" )
+						.appendTo( ul );
+				};
+
+				this.button = $( "<button type='button'>&nbsp;</button>" )
+					.attr( "tabIndex", -1 )
+					.attr( "title", "Show All Items" )
+					.insertAfter( input )
+					.button({
+						icons: {
+							primary: "ui-icon-triangle-1-s"
+						},
+						text: false
+					})
+					.removeClass( "ui-corner-all" )
+					.addClass( "ui-corner-right ui-button-icon" )
+					.click(function() {
+						// close if already visible
+						if ( input.autocomplete( "widget" ).is( ":visible" ) ) {
+							input.autocomplete( "close" );
+							return;
+						}
+
+						// work around a bug (likely same cause as #5265)
+						$( this ).blur();
+
+						// pass empty string as value to search for, displaying all results
+						input.autocomplete( "search", "" );
+						input.focus();
+					});
+			},
+
+			destroy: function() {
+				this.input.remove();
+				this.button.remove();
+				this.element.show();
+				$.Widget.prototype.destroy.call( this );
+			}
+		});
+	})( jQuery );
+      
+	
+	
+    	$(function() {
+		$( "button", ".demo" ).button();
+		$( "#create_user").click(createUser);
+                $( "#view_user").click(viewUser);
+                $( "#edit_user").click(editUser);
+                $( "#grant_priv").click(grantPrivilege);
+                $( "#revoke_priv").click(revokePrivilege);
+                $( "#grant_app").click(grantApp);
+                $( "#revoke_app").click(revokeApp);
+	});
+     </script>
+</head>
+
+<body>
+ <div align="center">
+   <table class="table">
+      <tr>
+          <td class="td">
+            Username
+          </td>
+	  <td>
+	    <input type="text" id="username" />
+	  </td>
+      </tr>
+      <tr>
+          <td>
+            Host 
+          </td>
+	  <td>
+	    <input type="text" id="host" />
+	  </td>
+      </tr>
+      
+       <tr>
+          <td>
+            Preset Group 
+           </td>
+	    <td>
+           <div class="ui-widget">
+	      <select id="pgroup">
+                  
+	    </select>
+          </div>      
+	  </td>
+      </tr>
+      
+      <tr>
+          <td>
+            User Group 
+          </td>
+	  <td>
+	  <div class="ui-widget">
+	<input type="text" id="ugroup"  onfocus="completeGroup('#ugroup')"/>  
+    </div>	
+	  </td>
+      </tr>
+      
+  
+      
+      <tr>
+          <td>
+            Privileges 
+          </td>
+	  <td>
+         <div class="ui-widget">
+	    <input id="privileges" size="50"  onfocus="completePrivileges('#privileges',privileges)"/>
+         </div> 
+			
+	  </td>
+      </tr>
+      
+     
+      
+      
+      <tr>
+          <td>
+           
+          </td>
+	  <td>
+          <div class="demo">
+              <button id="create_user">Create User</button>
+	  </div>
+	  </td>
+      </tr>
+      
+  </table>
+        
+ <table id="privs">
+     <tr>
+         <td class="td">
+          Username   
+         </td>
+         <td>
+           <input type="text" id="priv_name"/>
+         </td>
+     </tr>
+     <tr>
+         <td>
+           Privileges
+         </td>
+         <td>
+         <div class="ui-widget">
+	  <select id="priv_grant" >
+          </select>
+     </div> 
+       </td>
+     </tr>
+     <tr>
+         <td>
+             
+         </td>
+       <td>
+         <div class="demo">
+	  <button id="grant_priv">Grant Privilege</button>
+	  &nbsp;&nbsp;&nbsp;
+	  <button id="revoke_priv">Revoke Privilege</button>
+	  </div>
+       </td>
+     </tr>
+      
+ </table>
+    
+    
+    
+    
+      <table class="table">
+      <tr>
+          <td class="td">
+            Username*
+          </td>
+	  <td>
+	    <input type="text" id="edit_username" />
+	  </td>
+      </tr>
+      <tr>
+          <td>
+            Host* 
+          </td>
+	  <td>
+              <input type="text" id="edit_host" />
+	  </td>
+      </tr>
+     
+  
+      
+      
+       <tr>
+          <td>
+            User ID
+          </td>
+	  <td>
+	  <input type="text" id="edit_id" />  
+	  </td>
+      </tr>
+      
+       <tr>
+          <td>
+            Rank
+          </td>
+	  <td>
+	  <input type="text" id="edit_rank" />  
+	  </td>
+      </tr>
+      
+       <tr>
+          <td>
+            Is Disabled ?
+          </td>
+	  <td>
+	  <input type="text" id="edit_disabled" />  
+	  </td>
+      </tr>
+      
+       <tr>
+          <td>
+            Is LoggedIn ?
+          </td>
+	  <td>
+	  <input type="text" id="edit_loggedin" />  
+	  </td>
+      </tr>
+      
+       <tr>
+          <td>
+            Created
+          </td>
+	  <td>
+	  <input type="text" id="edit_created" />  
+	  </td>
+      </tr>
+      
+        <tr>
+          <td>
+            User Group* 
+           </td>
+	  <td>
+           <div class="ui-widget">
+	     <input type="text" id="edit_ugroup"  onfocus="completeGroup('#edit_ugroup')"/>  
+            </div>
+	  </td>
+      </tr>
+      
+      <tr>
+          <td>
+            User Privileges 
+            </td>
+	     <td>
+            <div class="ui-widget">
+	    <select id="user_privileges">
+	     <option value="">Privileges</option>
+	    </select>
+            </div> 
+	  </td>
+      </tr>
+      
+       
+      
+       <tr>
+          <td>
+            All Privileges* 
+          </td>
+	  <td>
+
+   <div class="ui-widget">
+	<input id="edit_all_privileges" size="50" onfocus="completePrivileges('#edit_all_privileges',privileges)" />
+     </div>              
+	  </td>
+      </tr>
+      
+    
+      <tr>
+          <td>
+
+          </td>
+          <td>
+          <div class="demo">
+	  <button id="view_user">View User</button>
+	  &nbsp;&nbsp;&nbsp;
+	  <button id="edit_user">Edit User</button>
+	  </div>
+          </td>
+      </tr>
+      
+  </table>
+    
+    <table id="buttons">
+        <tr>
+            <td>
+		<div class="demo">
+	           <button onclick="enableUser()">Enable</button>
+	     </div>
+            </td>
+             <td>
+              	  <div class="demo">
+	          <button onclick="disableUser()">Disable</button>
+	            </div>
+            </td>
+            <td>
+		  <div class="demo">
+	             <button onclick="deleteUser()">Delete</button>
+	            </div>
+            </td>
+            <td>
+             	  <div class="demo">
+	               <button onclick="undeleteUser()">Undelete</button>
+	             </div>
+            </td>
+            <td>
+				  <div class="demo">
+	               <button onclick="permanentDeleteUser()">Permanent Delete</button>
+	             </div>
+            </td>
+            <td>
+				  <div class="demo">
+	               <button onclick="resetPass()">Reset Password</button>
+	            </div>
+            </td>
+        </tr>
+    </table>
+     
+   
+    
+    </div>
+</body>
+</html>

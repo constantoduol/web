@@ -1,0 +1,22 @@
+changes
+------------------------------
+previously
+---------------
+1. change structure of accounts_records to have two more columns STREAM_ID and CLASS_ID
+2. changed the structure of activation data to have one more column SMS_ACCOUNT
+3. added another table under student_service called STUDENT_HISTORY
+4. changed structure of STREAM_SUBJECTS removed column TEACHER_ID
+5. changed structure of TEACHER_SUBJECTS added column STREAM_ID
+
+
+12th April 2014
+---------------
+1. you can now make wampserver mysqld start automatically by going to windows services to wampmysqld and changing its startup option from manual to automatic
+2. added a preview button to the message interface where you can preview a message before sending it. this is especially useful for template messages
+3. added support for sending exam results for the whole school at a go
+
+14th April 2014
+----------------
+1. added support for creating,updating and deleting quest access users when creating a teacher in teacher view
+2. 
+

@@ -1,0 +1,242 @@
+﻿
+<html>
+  <head>
+       <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    <title>
+	 Quest | Main
+	</title>
+	<script type="text/javascript" src="files/ddtabmenu.js">
+
+/***********************************************
+
+* DD Tab Menu script- � Dynamic Drive DHTML code library (www.dynamicdrive.com)
+
+* This notice MUST stay intact for legal use
+
+* Visit Dynamic Drive at http://www.dynamicdrive.com/ for full source code
+
+***********************************************/
+
+</script>
+
+<!-- CSS for Tab Menu #4 -->
+
+<link rel="stylesheet" type="text/css" href="files/ddcolortabs.css" />
+<link rel="stylesheet" type="text/css" href="files/access.css" />
+<script type="text/javascript">
+
+//SYNTAX: ddtabmenu.definemenu("tab_menu_id", integer OR "auto")
+
+ddtabmenu.definemenu("ddtabs4", "auto") //initialize Tab Menu #4 with 3rd tab selected
+
+</script>
+
+<script type="text/javascript" src="files/frame.js" ></script>
+<script type="text/javascript" src="scripts/ui.js" ></script>
+<script type="text/javascript" src="files/util.js" ></script>
+<script type="text/javascript">
+
+    var serverUrl="/web/server";
+    var messages=[];
+      function doLogOut(){
+             var json={
+                 request_header : {
+                     request_msg : "logout"
+                  },
+                  
+                  request_object : {
+                     
+                  }
+              }
+              
+               Ajax.run({
+                  url : serverUrl,
+                  type : "post",
+                  data : json,
+                  error : function(err){
+                     parent.setInfo("An error occurred when attempting to log out ",false);
+                  },
+                  success : function(json){
+                     if(json.response.data==="success"){
+                         window.cookieStorage.removeItem("user");
+                         window.cookieStorage.removeItem("rand");
+                         window.location="index.html" 
+                     }
+                    else{
+                     parent.setInfo("An error occurred when attempting to log out ",true);    
+                  }
+                } 
+          });
+       }
+      
+
+ 
+ 
+ function showInfo(){
+     if(messages.length>0){
+      document.getElementById("status").innerHTML=messages.shift();   
+     }
+ }
+ 
+ function displayInfo(info){
+    document.getElementById("status").innerHTML=info;
+ }
+ 
+ function clearInfo(){
+   document.getElementById("status").innerHTML=""; 
+ }
+
+ function setInfo(info,interrupt){
+    if(interrupt){
+       displayInfo(info); 
+    }
+    else{
+      messages.push(info);
+    }  
+ }
+ 
+ (function startShow(){
+   setTimeout(showInfo,2000);  
+   setTimeout(startShow,2000);
+ })();
+ 
+ (function startClear(){
+   setTimeout(clearInfo,6000);  
+   setTimeout(startClear,6000);
+ })();
+ 
+
+  
+ function getCurrentUser(){
+   return userName;
+ }
+
+
+
+window.onload=function(){
+   loadTabs();
+   loadTab("preset.html");
+   loadTab("privilege.html");
+   loadTab("service.html");
+   loadTab("session.html");
+   loadTab("user.html");
+   dom.el("loader").style.display="none" 
+}
+ 
+
+
+</script>
+<style>
+    .status {
+       background: lightgray; 
+    }
+    
+   .main {
+        
+    }
+    
+   .screen{
+     padding-left: 10px;  
+     overflow : scroll;
+    }
+    
+    .tab-table{
+       background: lightgray;   
+    }
+    
+    
+</style>
+   
+ </head>
+ 
+<body>
+<!-- Main Table -->
+<div id="maintable" class="main">
+          
+    <!-- Tabs Table -->        
+<div id="tabtable" class="tab-table">
+    <div id="tabs"></div>
+</div>
+
+
+<!-- Screen Table -->
+<div id="screen" class="screen" >
+     
+</div>
+ 
+   
+
+
+<!-- Status Table -->
+<div  id="statustable" class="status">
+    <table>
+        <tr>
+            <td>
+              <label id="loader"><img src='img/grey-ajax-loader.gif'></label>
+            </td>
+              <td>
+                <label id="status"></label>
+            </td>
+    </tr>
+    </table>
+   
+</div>
+<!-- End Main Table -->
+</div>
+<script>
+   window.onresize=function(){
+      doResize();
+    }
+	  
+   function doResize() {
+        var body = window.document.body;
+	var screenHeight;
+	//var screenWidth;
+        if (window.innerHeight) {
+          screenHeight = window.innerHeight;
+        //  screenWidth = window.innerWidth;
+       } else if (body.parentElement.clientHeight) {
+          screenHeight = body.parentElement.clientHeight;
+	 // screenWidth = body.parentElement.clientWidth;
+        } else if (body && body.clientHeight) {
+           screenHeight = body.clientHeight;
+	  // screenWidth = body.clientWidth
+        }
+        var tabHeight=Math.floor(screenHeight*0.05);
+        var showHeight=Math.floor((screenHeight*0.85));
+        var statusHeight=Math.floor(screenHeight*0.05);
+        var tabs=document.getElementById("tabtable");
+	tabs.style.height=tabHeight+"px";
+        var screen=document.getElementById("screen");
+	screen.style.height=showHeight+"px";
+        var status=document.getElementById("statustable");
+	status.style.height=statusHeight+"px";
+       
+	    
+} 
+
+function showName(){
+    var name=cookieStorage.getItem("user");
+    if(name==null || name==""){
+         window.location="index.html"
+         return;
+      }
+      if(name.length>11){
+         name=name.slice(0,11)+"...";
+      }
+    var logout=dom.el("log_out_link");
+    logout.style.padding="5px";
+    logout.innerHTML="Log Out[<font color='black'>"+name+"</font>]"
+    logout.href="javascript:doLogOut()"
+}
+
+ dom.waitTillReady(showName);
+
+(function(){
+  doResize();  
+})();
+ 
+</script>
+ </body>
+
+ </html>

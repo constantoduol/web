@@ -1,0 +1,124 @@
+
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Change Password</title>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+        <link href="scripts/bootstrap.min.css" rel="stylesheet">
+        <link href="scripts/main.css" rel="stylesheet">
+        <script src="scripts/ui.js" type="text/javascript"></script>
+        <script type="text/javascript">
+           var redirect=getLocationBarValue();
+          function changePass(){
+              var name=dom.el("username").value;
+              var oldpass=dom.el("old_password").value;
+              var newpass=dom.el("new_password").value;
+              var confirmpass=dom.el("confirm_new_password").value;
+              if(name===""){
+                showInfo("Name is required"); 
+                dom.el("username").focus();
+                return;
+              }
+              if(oldpass===""){
+                 showInfo("Old password is required"); 
+                 dom.el("old_password").focus();
+                 return;
+              }
+              if(newpass !== "" && newpass === confirmpass) {
+                if(newpass.length < 6) {
+                     showInfo("Error: Password must contain at least six characters!");
+                     dom.el("new_password").focus();
+                    return false;
+                }
+               if(name === newpass) {
+                     showInfo("Error: Password must be different from Username!");
+                     dom.el("new_password").focus();
+                     return false;
+                 }
+                 re = /[0-9]/;
+                 if (!re.test(newpass)) {
+                      showInfo("Error: password must contain at least one number (0-9)!");
+                      dom.el("new_password").focus();
+                      return false;
+                  }
+                } else {
+                     showInfo("Error: Passwords do not match!");
+                     dom.el("new_password").focus();
+                     return false;
+                }
+             
+    
+
+               var json={
+                  request_header : {
+                     request_msg : "changepass"
+                  },
+                  
+                  request_object : {
+                     user_name : name,
+                     old_password : oldpass,
+                     new_password : newpass
+                  }
+              };
+          
+                  
+               Ajax.run({
+                  url : "/web/server",
+                  type : "post",
+                  loadArea : "change_load",
+                  data : json,
+                  error : function(err){
+                     showInfo("An error occurred");
+                  },
+                  success : function(json){
+                   var resp=json.response.response;
+                   if(resp===false){
+                       showInfo("wrong username or old password");  
+                   }
+                   else if(resp===true){
+                     window.location=redirect;
+                   }
+                } 
+             });
+              
+
+        }
+        
+   function getLocationBarValue(){
+     var location=window.location+"";
+     var index=location.indexOf("=");
+     if(index===-1){
+       return null;
+     }
+    var name=location.slice(index+1,location.length);
+    return name;
+}
+           function showInfo(val){
+              dom.el("error").innerHTML=val;
+           }
+        </script>
+    </head>
+    <body>
+        <form onsubmit="changePass(); return false;">
+         <div class="login-form">      
+                 <h3>Change Password</h3>
+                <label>Username</label>
+                <input type="text" class="input-block-level" id="username" placeholder="Username" >
+                <label>Old Password</label>
+                <input type="password" class="input-block-level" id="old_password" placeholder="Old Password">
+                 <label>New Password</label>
+                <input type="password" class="input-block-level" id="new_password" placeholder="New Password">
+                 <label>Confirm New Password</label>
+                <input type="password" class="input-block-level" id="confirm_new_password" placeholder="Confirm New Password">
+                <label id="error" style="color : red;"></label>
+                <label id="change_load" style="display: none;"><img src="img/ajax-loader.gif"/></label>
+                <footer>
+                    <input type="submit" class="btn btn-medium btn-primary pull-right" value="Change Password" />
+                </footer>
+                 <div style="clear: both"></div>
+        </div>
+        </form>
+            
+        
+    </body>
+</html>

@@ -1,0 +1,110 @@
+/* 
+    Document   : access
+    Created on : Jul 26, 2012, 6:13:23 PM
+    Author     : Quest
+    Description:
+        Purpose of the stylesheet follows.
+*/
+
+/* 
+   TODO customize this sample style
+   Syntax recommendation http://www.w3.org/TR/REC-CSS2/
+*/
+
+
+body{
+ font-family: calibri,serif,sans-serif;
+ text-align: left
+}
+
+.table {
+    border: 5px solid lightgray;
+    height: 10%; 
+    width:80%;   
+    border-left-width: 10px;
+    border-right-width: 10px;
+    border-left-color: lightgray;
+    border-right-color: lightgray;
+    text-align: left;
+    
+    
+}
+
+.td{
+  width:15%;      
+}
+
+
+#buttons {
+    border: 5px solid lightgray;
+    height: 2%; 
+    width:80%;        
+    border-left-width: 10px;
+    border-right-width: 10px;
+    border-left-color: lightgray;
+    border-right-color: lightgray;
+    border-bottom-color: lightgray;
+    border-bottom-width: 10px
+}
+
+.text{
+    display:block;width:100%;
+    min-height:30px;
+    -webkit-box-sizing:border-box;
+    -moz-box-sizing:border-box;
+    box-sizing:border-box
+}
+
+#privs {
+    border: 1px solid lightgray;
+    height: 10%; 
+    width:80%;        
+    border-left-width: 10px;
+    border-right-width: 10px;
+    border-left-color: lightgray;
+    border-right-color: lightgray;
+    text-align: left
+}
+
+
+#login{
+    font-family: calibri,serif,sans-serif;
+    text-align: left;
+    height: 50%; 
+    width: 40%; 
+    background-color: #AFD1F8;
+    padding: 19px 29px 29px;
+    margin: 0 auto 20px;
+    border: 1px solid #e5e5e5;
+   -webkit-border-radius: 5px;
+   -moz-border-radius: 5px;
+    border-radius: 5px;
+   -webkit-box-shadow: 0 1px 2px rgba(0,0,0,.05);
+   -moz-box-shadow: 0 1px 2px rgba(0,0,0,.05);
+    box-shadow: 0 1px 2px rgba(0,0,0,.05);
+   
+}
+
+.button {
+  color: blue;
+  font-size:12pt;
+  font-family:candara;
+  background: #AFD1F8;
+  border-style:solid;
+  border-color:lightgray;
+  height: 30px; 
+  width:200px   
+    
+}
+
+#error {
+    color: red; 
+}
+
+#copy {
+  font-size: 12px;  
+  color: blue;
+}
+
+
+

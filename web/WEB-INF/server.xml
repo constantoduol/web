@@ -1,0 +1,45 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<config>
+      <!-- This is the ip address of the server where 
+	        this server program is meant to run e.g. 192.168.77.2, localhost etc-->
+      <server-host value="localhost"/>
+	  
+	  <!--This is the port on which the server is listening for client connections -->
+	      
+      <server-port value="1720"/>
+	  
+	  <!--This is the password used to connect to the database, a wrong password means the server
+	      will not be able to access the database -->
+      <database-password value=""/>
+	  
+	  <!--This is the user name of the user account we are using to connect to the database, actions
+	      performed by the server using this account are limited to the privileges this user is assigned on
+		  the database server -->
+	  <database-username  value="root" />
+	  
+	  <!--This is the host on which the specified database user is allowed to connect from -->
+	  <database-host value="localhost"/>
+      
+	  
+	  <!-- This is the password assigned to users when they are newly created -->
+	  <default-password value="pass"/>
+	  
+	  <!-- This specifies in minutes how long a password takes before it expires and the server requires the client to change it -->
+      <password-expires value="0" />
+	  
+	  <!-- This specifies how many times a user can try to log in before his user account is automatically disabled by the server -->
+      <max-password-retries value="0" />
+	  
+	  <!-- This specifies in minutes the time a server takes before timing out a client -->
+      <client-timeout value="0" />
+	  
+	  
+	  <!-- This tells us whether users are allowed to be logged in more than once -->
+      <multiple-login value="true" />
+	  
+	  <!-- This tells us the directory where extension classes are to be found -->
+      <extension-dir value="C:\Program Files\Apache Software Foundation\Tomcat 7.0\webapps\ServiceTest\WEB-INF\classes"/>
+	  
+</config>
+     
+ 

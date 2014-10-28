@@ -1,0 +1,9 @@
+put win32 com under jdk/bin
+put comm.jar under jdk/jre/lib/ext
+put javax.comm.properties under jdk/jre/lib
+
+
+Copy RXTXcomm.jar ---> <JAVA_HOME>\jre\lib\ext
+Copy rxtxSerial.dll ---> <JAVA_HOME>\jre\bin
+Copy rxtxParallel.dll ---> <JAVA_HOME>\jre\bin
+

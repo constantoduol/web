@@ -1,0 +1,523 @@
+
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Privileges</title>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+       <link rel="stylesheet" href="../themes/base/jquery.ui.all.css">
+	<script src="../js/jquery-1.7.2.js"></script>
+	<script src="../ui/jquery.ui.core.js"></script>
+	<script src="../ui/jquery.ui.widget.js"></script>
+	<script src="../ui/jquery.ui.button.js"></script>
+        <script src="../ui/jquery.ui.position.js"></script>
+	<script src="../ui/jquery.ui.autocomplete.js"></script>
+         <script type="text/javascript" src="scripts/ui.js"></script>
+         <script type="text/javascript" src="files/util.js"></script>
+	<link rel="stylesheet" href="../css/demos.css">
+	<style>
+	.ui-button { margin-left: -1px; }
+	.ui-button-icon-only .ui-button-text { padding: 0.35em; } 
+	.ui-autocomplete-input { margin: 0; padding: 0.48em 0 0.47em 0.45em; }
+	</style>	
+	 <link rel="stylesheet" type="text/css" href="files/access.css" />
+         <script type="text/javascript">
+             
+             
+          var privileges=[];
+          
+          
+          var serverUrl="/web/server";
+          
+          
+      function createPreset(){
+         var preName=getValue("preset_name");
+         var uGroup=getValue("user_groups"); 
+            if(preName=="" || preName==null){
+              parent.setInfo("Preset name is required",true);
+              focus("preset_name");
+              return
+             }
+            if(uGroup=="" || uGroup==null){
+               parent.setInfo("User group is required",true);
+               focus("user_groups");
+               return;
+             }
+             
+             
+            var privs=getMultipleEntries("privileges");
+             
+            if(privs=="" || privs==null){
+               parent.setInfo("Privileges are required",true);
+               focus("privileges");
+               return;
+             }
+            var conf=confirm("Create Preset group ?");
+             if(!conf){
+              return;   
+             }
+             
+           
+           var json={
+                 request_header : {
+                     request_msg : "create_preset_group",
+                     request_svc :"user_service"
+                  },
+                  
+                  request_object : {
+                     name : preName,
+                     group : uGroup,
+                     privs : privs
+                  }
+              }
+              
+               Ajax.run({
+                  url : serverUrl,
+                  type : "post",
+                  data : json,
+                  error : function(err){
+                     parent.setInfo("An error occurred ",false);
+                  },
+                  success : function(json){
+                  var resp=json.response.data;
+                    if(json.response.type=="exception"){
+                        parent.setInfo(json.response.ex_reason,true);  
+                     }
+                    else if(resp=="success"){
+                         parent.setInfo("Preset group created successfully");  
+                    } else {
+                         parent.setInfo("Error creating preset group");
+                     }
+                } 
+          });  
+     }
+     
+     
+     
+  
+     function viewPreset(){
+        var name=getValue("view_name");
+           if(name=="" || name==null){
+              parent.setInfo("Preset name is required",true);
+              focus("view_name");
+              return
+         }
+        depopulateSelect("view_privileges");
+        var json={
+                 request_header : {
+                     request_msg : "view_preset_group",
+                     request_svc :"user_service"
+                  },
+                  
+                  request_object : {
+                     name : name
+                  }
+              }
+              
+               Ajax.run({
+                  url : serverUrl,
+                  type : "post",
+                  data : json,
+                  error : function(err){
+                     parent.setInfo("An error occurred ",false);
+                  },
+                  success : function(json){
+                    if(json.response.type=="exception"){
+                        parent.setInfo(json.response.ex_reason,true);  
+                     }
+                    else{
+                     var details=json.response.data
+                     setValue("view_created",details.created);
+                     setValue("view_id",details.id)
+                     populateSelect("view_privileges",details.privileges,details.privileges);
+                    }
+                } 
+          });
+     }
+     
+  
+  
+  
+  function deletePreset(){
+    var name=getValue("view_name");
+        if(name=="" || name==null){
+              parent.setInfo("Preset group name is required",true);
+              focus("view_name");
+              return
+         }  
+            var conf=confirm("Delete preset group  ?");
+             if(!conf){
+              return;   
+               }  
+       var json={
+                 request_header : {
+                     request_msg : "delete_preset_group",
+                     request_svc :"user_service"
+                  },
+                  
+                  request_object : {
+                     name : name
+                  }
+              }
+              
+               Ajax.run({
+                  url : serverUrl,
+                  type : "post",
+                  data : json,
+                  error : function(err){
+                     parent.setInfo("An error occurred ",false);
+                  },
+                  success : function(json){
+                     var resp=json.response.data;
+                     if(json.response.type=="exception"){
+                        parent.setInfo(json.response.ex_reason,true);  
+                     }
+                      else if(resp=="success"){
+                         parent.setInfo("Preset group deleted successfully");  
+                      }
+                    else{
+                     parent.setInfo("Preset group deletion failed");    
+                    }
+                } 
+          });
+  
+   }
+   
+
+   
+   
+      window.onload=function(){
+        var json={
+                 request_header : {
+                     request_msg : "all_user_groups",
+                     request_svc :"user_service"
+                  },
+                  
+                  request_object : {
+                  }
+              }
+             Ajax.run({
+                  url : serverUrl,
+                  type : "post",
+                  data : json,
+                  error : function(err){
+                     parent.setInfo("An error occurred ",false);
+                  },
+                  success : function(json){
+                   populateSelect("user_groups",json.response.data,json.response.data);
+                } 
+             });
+             
+              var json={
+                 request_header : {
+                     request_msg : "all_privilege_names",
+                     request_svc :"user_service"
+                  },
+                  
+                  request_object : {
+                  }
+              }
+             Ajax.run({
+                  url : serverUrl,
+                  type : "post",
+                  data : json,
+                  error : function(err){
+                     parent.setInfo("An error occurred ",false);
+                  },
+                  success : function(json){
+                    privileges=json.response.data;
+                } 
+             });
+  }
+  
+   
+     
+     
+     
+     
+    
+     
+ 
+     
+     
+      function deleteApp(){
+         var appName=getValue("app_name");
+            if(appName=="" || appName==null){
+              parent.setInfo("Application name is required",true);
+              focus("app_name");
+              return;
+             }
+          var conf=confirm("Delete Application ?");
+          if(!conf){
+              return;   
+             } 
+         var json={
+             request_header :{
+                 request_msg : 'delete_app',
+                 request_svc : 'privilege_service'
+                 },
+                    
+             request_object : {
+                name : appName
+             } 
+          }
+          Ajax.run({
+                  url : serverUrl,
+                  type : "post",
+                  data : json,
+                  error : function(err){
+                     parent.setInfo("An error occurred ",false);
+                  },
+                  success : function(json){
+                    var resp=json.response.data;
+                     if(resp=="success"){
+                        parent.setInfo("Application deleted successfully");  
+                         }
+                        else{
+                         parent.setInfo("Application deletion failed");    
+                     }
+                } 
+             });
+     }
+     
+     
+     
+
+//--------------------------------------------------------------------------------------------	  
+	  
+	  (function( $ ) {
+		$.widget( "ui.combobox", {
+			_create: function() {
+				var self = this,
+					select = this.element.hide(),
+					selected = select.children( ":selected" ),
+					value = selected.val() ? selected.text() : "";
+				var input = this.input = $( "<input>" )
+					.insertAfter( select )
+					.val( value )
+					.autocomplete({
+						delay: 0,
+						minLength: 0,
+						source: function( request, response ) {
+							var matcher = new RegExp( $.ui.autocomplete.escapeRegex(request.term), "i" );
+							response( select.children( "option" ).map(function() {
+								var text = $( this ).text();
+								if ( this.value && ( !request.term || matcher.test(text) ) )
+									return {
+										label: text.replace(
+											new RegExp(
+												"(?![^&;]+;)(?!<[^<>]*)(" +
+												$.ui.autocomplete.escapeRegex(request.term) +
+												")(?![^<>]*>)(?![^&;]+;)", "gi"
+											), "<strong>$1</strong>" ),
+										value: text,
+										option: this
+									};
+							}) );
+						},
+						select: function( event, ui ) {
+							ui.item.option.selected = true;
+							self._trigger( "selected", event, {
+								item: ui.item.option
+							});
+						},
+						change: function( event, ui ) {
+							if ( !ui.item ) {
+								var matcher = new RegExp( "^" + $.ui.autocomplete.escapeRegex( $(this).val() ) + "$", "i" ),
+									valid = false;
+								select.children( "option" ).each(function() {
+									if ( $( this ).text().match( matcher ) ) {
+										this.selected = valid = true;
+										return false;
+									}
+								});
+								if ( !valid ) {
+									// remove invalid value, as it didn't match anything
+									$( this ).val( "" );
+									select.val( "" );
+									input.data( "autocomplete" ).term = "";
+									return false;
+								}
+							}
+						}
+					})
+					.addClass( "ui-widget ui-widget-content ui-corner-left" );
+
+				input.data( "autocomplete" )._renderItem = function( ul, item ) {
+					return $( "<li></li>" )
+						.data( "item.autocomplete", item )
+						.append( "<a>" + item.label + "</a>" )
+						.appendTo( ul );
+				};
+
+				this.button = $( "<button type='button'>&nbsp;</button>" )
+					.attr( "tabIndex", -1 )
+					.attr( "title", "Show All Items" )
+					.insertAfter( input )
+					.button({
+						icons: {
+							primary: "ui-icon-triangle-1-s"
+						},
+						text: false
+					})
+					.removeClass( "ui-corner-all" )
+					.addClass( "ui-corner-right ui-button-icon" )
+					.click(function() {
+						// close if already visible
+						if ( input.autocomplete( "widget" ).is( ":visible" ) ) {
+							input.autocomplete( "close" );
+							return;
+						}
+
+						// work around a bug (likely same cause as #5265)
+						$( this ).blur();
+
+						// pass empty string as value to search for, displaying all results
+						input.autocomplete( "search", "" );
+						input.focus();
+					});
+			},
+
+			destroy: function() {
+				this.input.remove();
+				this.button.remove();
+				this.element.show();
+				$.Widget.prototype.destroy.call( this );
+			}
+		});
+	})( jQuery );
+ 
+ 
+	$(function() {
+               $( "#user_groups").combobox();
+	       $( "#view_privileges").combobox();
+		
+		$( "#toggle" ).click(function() {
+			$( "#user_groups" ).toggle();
+		});
+                $( "#toggle" ).click(function() {
+			$( "#view_privileges" ).toggle();
+		});
+	});
+ 
+
+        
+            $(function() {
+		$( "button", ".demo" ).button();
+		$( "#create_preset").click(createPreset);
+                $( "#view_preset").click(viewPreset);
+                $( "#delete_preset").click(deletePreset);
+                
+	      });
+       
+       
+       
+         </script>
+    </head>
+    <body>
+        <div align="center">
+  <table class="table" >
+      <tr>
+          <td class="td">
+            Preset Name
+          </td>
+	  <td>
+	    <input type="text" id="preset_name" />
+	  </td>
+      </tr>
+      <tr>
+          <td>
+            User Groups
+          </td>
+	  <td>
+	    <div class="ui-widget">
+                <select id="user_groups">
+	    </select>
+      </div> 
+	  </td>
+      </tr>
+      <tr>
+          <td>
+            All Privileges
+          </td>
+	  <td>
+           <div class="ui-widget">
+	  <input id="privileges" size="50" onfocus="completePrivileges('#privileges',privileges)" />
+          </div>
+        
+	  </td>
+      </tr>
+      
+      
+      
+      <tr>
+          <td>
+           
+          </td>
+	  <td>
+	  <div class="demo">
+	  <button id="create_preset">Create Preset Group</button>
+	  </div>
+	  </td>
+      </tr>
+      
+  </table>
+    
+     <table class="table">
+      <tr>
+          <td class="td">
+            Preset Name
+          </td>
+	  <td>
+	    <input type="text" id="view_name" />
+	  </td>
+      </tr>
+      
+      
+       <tr>
+          <td>
+            Preset ID
+          </td>
+	  <td>
+              <input type="text" id="view_id" />
+	  </td>
+      </tr>
+      
+      <tr>
+          <td>
+            Created
+          </td>
+	  <td>
+              <input type="text" id="view_created"/>
+	  </td>
+      </tr>
+      
+      <tr>
+          <td>
+            Privileges
+          </td>
+	  <td>
+              <div class="ui-widget">
+              <select id="view_privileges"></select>
+              </div>
+	  </td>
+      </tr>
+      
+      <tr>
+          <td>
+
+          </td>
+          <td>
+          <div class="demo">
+	    <button id="view_preset">View Preset</button>
+            &nbsp;&nbsp;
+            <button id="delete_preset">Delete Preset</button>
+	  </div>
+          </td>
+      </tr>
+      
+        </table>
+ 
+    
+        </div>
+    </body>
+</html>

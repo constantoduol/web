@@ -1,0 +1,701 @@
+
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Privileges</title>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+       <link rel="stylesheet" href="../themes/base/jquery.ui.all.css">
+	<script src="../js/jquery-1.7.2.js"></script>
+	<script src="../ui/jquery.ui.core.js"></script>
+	<script src="../ui/jquery.ui.widget.js"></script>
+	<script src="../ui/jquery.ui.button.js"></script>
+        <script src="../ui/jquery.ui.position.js"></script>
+	<script src="../ui/jquery.ui.autocomplete.js"></script>
+         <script type="text/javascript" src="files/util.js"></script>
+          <script type="text/javascript" src="scripts/ui.js"></script>
+	<link rel="stylesheet" href="../css/demos.css">
+	<style>
+	.ui-button { margin-left: -1px; }
+	.ui-button-icon-only .ui-button-text { padding: 0.35em; } 
+	.ui-autocomplete-input { margin: 0; padding: 0.48em 0 0.47em 0.45em; }
+	</style>	
+	 <link rel="stylesheet" type="text/css" href="files/access.css" />
+         <script type="text/javascript">
+             
+             
+          var resources=[];
+          var groups=[];
+          var serverUrl="/web/server";
+          
+      function createPrivilege(){
+         var privName=getValue("privilege_name");
+         var level=getValue("privilege_level"); 
+            if(privName=="" || privName==null){
+              parent.setInfo("Privilege name is required",true);
+              focus("privilege_name");
+              return
+             }
+            if(level=="" || level==null){
+               parent.setInfo("Privilege level is required",true);
+               focus("privilege_level");
+               return;
+             }
+             if(isNaN(level)){
+              parent.setInfo("Invalid privilege level",true);
+               focus("privilege_level");
+               return;   
+             }
+             var conf=confirm("Create Privilege ?");
+             if(!conf){
+              return;   
+             }
+                var json={
+                 request_header : {
+                     request_msg : "create_privilege",
+                     request_svc :"privilege_service"
+                  },
+                  
+                  request_object : {
+                     name:privName,
+                     level:level,
+                     res:resources
+                  }
+              }
+             Ajax.run({
+                  url : serverUrl,
+                  type : "post",
+                  data : json,
+                  error : function(err){
+                     parent.setInfo("An error occurred ",false);
+                  },
+                  success : function(json){
+                  var resp=json.response.data;
+                   if(resp=="success"){
+                      parent.setInfo("Privilege created successfully");  
+                    }
+                  else{
+                    parent.setInfo("Privilege creation failed");   
+                  }
+                } 
+             });
+     }
+     
+  
+     
+     function addResource(){
+       var res=document.getElementById("resource").value;  
+         if(resources.indexOf(res)==-1){
+           resources.push(res);   
+         }
+         else{
+           parent.setInfo("Resource already added",true);
+         }
+     }
+       
+     function reset(){
+        resources=[];
+        parent.setInfo("Resources reset");
+     }
+     
+     function viewPrivilege(){
+        var name=getValue("view_name");
+           if(name=="" || name==null){
+              parent.setInfo("Privilege name is required",true);
+              focus("view_name");
+              return
+         }
+         var json={
+                 request_header : {
+                     request_msg : "view_privilege",
+                     request_svc :"privilege_service"
+                  },
+                  
+                  request_object : {
+                     name:name
+                  }
+              }
+             Ajax.run({
+                  url : serverUrl,
+                  type : "post",
+                  data : json,
+                  error : function(err){
+                     parent.setInfo("An error occurred ",false);
+                  },
+                  success : function(json){
+                     if(json.response.type=="exception"){
+                       parent.setInfo(json.response.ex_reason,false);  
+                     }
+                     else{
+                        var details=json.response.data
+                        setValue("view_level",details.level);
+                        setValue("view_state",details.state)
+                        setValue("view_created",details.created);
+                        setValue("view_id",details.id)
+                     }
+                } 
+             });
+     }
+     
+ 
+  
+  
+  function deletePrivilege(){
+    var name=getValue("view_name");
+        if(name=="" || name==null){
+              parent.setInfo("Privilege name is required",true);
+              focus("view_name");
+              return
+         }  
+            var conf=confirm("Delete Privilege ?");
+             if(!conf){
+              return;   
+               }  
+        
+       var json={
+                 request_header : {
+                     request_msg : "delete_privilege",
+                     request_svc :"privilege_service"
+                  },
+                  
+                  request_object : {
+                     name:name
+                  }
+              }
+             Ajax.run({
+                  url : serverUrl,
+                  type : "post",
+                  data : json,
+                  error : function(err){
+                     parent.setInfo("An error occurred when attempting to delete the privilege ",false);
+                  },
+                  success : function(json){
+                     var resp=json.response.data
+                     if(json.response.type=="exception"){
+                        parent.setInfo(json.response.ex_reason,true);     
+                     }
+                     else if(resp=="success"){
+                         parent.setInfo("Privilege deleted successfully",true);  
+                      }
+                    else{
+                         parent.setInfo("Privilege deletion failed");   
+                  }
+                } 
+             });
+      
+  
+   }
+   
+ 
+   
+
+  
+      window.onload=function(){
+            var json={
+                 request_header : {
+                     request_msg : "all_user_groups",
+                     request_svc :"privilege_service"
+                  },
+                  
+                  request_object : {
+                  }
+              }
+             Ajax.run({
+                  url : serverUrl,
+                  type : "post",
+                  data : json,
+                  error : function(err){
+                     parent.setInfo("An error occurred ",false);
+                  },
+                  success : function(json){
+                   var arr=json.response.data;
+                   populateSelect("user_groups",arr, arr);
+                } 
+             });
+  }
+   
+
+   
+   function disablePrivilege(){
+     var name=getValue("view_name");
+        if(name=="" || name==null){
+              parent.setInfo("Privilege name is required",true);
+              focus("view_name");
+              return
+         }  
+            var conf=confirm("Disable Privilege ?");
+             if(!conf){
+              return;   
+          }  
+         var json={
+                 request_header : {
+                     request_msg : "disable_privilege",
+                     request_svc :"privilege_service"
+                  },
+                  
+                  request_object : {
+                      name:name
+                  }
+              }
+             Ajax.run({
+                  url : serverUrl,
+                  type : "post",
+                  data : json,
+                  error : function(err){
+                     parent.setInfo("An error occurred ",false);
+                  },
+                  success : function(json){
+                    var resp=json.response.data
+                    if(json.response.type=="exception"){
+                        parent.setInfo(json.response.ex_reason,true);     
+                     }
+                    else if(resp=="success"){
+                        parent.setInfo("Privilege disabled successfully");  
+                     }
+                    else{
+                     parent.setInfo("Privilege disable failed");     
+                   }
+                } 
+             });
+  
+   }
+   
+ 
+   
+   
+   function enablePrivilege(){
+     var name=getValue("view_name");
+        if(name=="" || name==null){
+              parent.setInfo("Privilege name is required",true);
+              focus("view_name");
+              return
+         }  
+            var conf=confirm("Enable Privilege ?");
+             if(!conf){
+              return;   
+          }  
+        var json={
+                 request_header : {
+                     request_msg : "enable_privilege",
+                     request_svc :"privilege_service"
+                  },
+                  
+                  request_object : {
+                      name:name
+                  }
+              }
+             Ajax.run({
+                  url : serverUrl,
+                  type : "post",
+                  data : json,
+                  error : function(err){
+                     parent.setInfo("An error occurred ",false);
+                  },
+                  success : function(json){
+                   var resp=json.response.data;
+                     if(json.response.type=="exception"){
+                        parent.setInfo(json.response.ex_reason,true);     
+                     }
+                    else if(resp=="success"){
+                      parent.setInfo("Privilege enabled successfully");  
+                     }
+                   else{
+                    parent.setInfo("Privilege enable failed");    
+                  }
+                } 
+             });
+  
+   }
+
+   
+   function grantPrivilege(){
+    var name=getValue("view_name");
+      var group=getValue("user_groups");
+        if(name=="" || name==null){
+              parent.setInfo("Privilege name is required",true);
+              focus("view_name");
+              return
+         }  
+          if(group=="" || group==null){
+              parent.setInfo("User group is required",true);
+              focus("user_groups");
+              return
+         }  
+            var conf=confirm("Grant Privilege "+name+" to "+group+" ?");
+             if(!conf){
+              return;   
+          }  
+          var json={
+                 request_header : {
+                     request_msg : "grant_to_group",
+                     request_svc :"privilege_service"
+                  },
+                  
+                  request_object : {
+                      privilege:name,
+                      group:group
+                  }
+              }
+             Ajax.run({
+                  url : serverUrl,
+                  type : "post",
+                  data : json,
+                  error : function(err){
+                     parent.setInfo("An error occurred when attempting to grant privilege to group ",false);
+                  },
+                  success : function(json){
+                     var resp=json.response.data
+                     if(json.response.type=="exception"){
+                        parent.setInfo(json.response.ex_reason,true);     
+                      }
+                     else if(resp=="success"){
+                         parent.setInfo("Privilege granted to group successfully");  
+                      }
+                    else{
+                        parent.setInfo("Privilege grant to group failed");    
+                     }  
+                } 
+             });
+  
+   }
+   
+  
+   
+   function revokePrivilege(){
+     var name=getValue("view_name");
+    var group=getValue("user_groups");
+        if(name=="" || name==null){
+              parent.setInfo("Privilege name is required",true);
+              focus("view_name");
+              return
+         }  
+          if(group=="" || group==null){
+              parent.setInfo("User group is required",true);
+              focus("user_groups");
+              return
+         }  
+            var conf=confirm("Revoke Privilege "+name+" from "+group+" ?");
+             if(!conf){
+              return;   
+          }  
+          var json={
+                 request_header : {
+                     request_msg : "revoke_from_group",
+                     request_svc :"privilege_service"
+                  },
+                  
+                  request_object : {
+                      privilege:name,
+                      group:group
+                  }
+              }
+             Ajax.run({
+                  url : serverUrl,
+                  type : "post",
+                  data : json,
+                  error : function(err){
+                     parent.setInfo("An error occurred ",false);
+                  },
+                  success : function(json){
+                    var resp=json.response.data;
+                    if(json.response.type=="exception"){
+                        parent.setInfo(json.response.ex_reason,true);     
+                     }
+                    else if(resp=="success"){
+                        parent.setInfo("Privilege revoked from group successfully");  
+                     }
+                    else{
+                        parent.setInfo("Privilege revoke from group failed");    
+                    }
+                  } 
+             });
+  
+   }
+   
+ 
+	$(function() {
+            $( "#user_groups").combobox();
+		
+		$( "#toggle" ).click(function() {
+			$( "#user_groups" ).toggle();
+		});
+	});
+     
+             	$(function() {
+		$( "button", ".demo" ).button();
+		$( "#create_privilege").click(createPrivilege);
+                $( "#reset").click(reset);
+                $( "#add_resource").click(addResource);
+                $( "#view_privilege").click(viewPrivilege);
+                $( "#delete_privilege").click(deletePrivilege);
+                $( "#disable_privilege").click(disablePrivilege);
+                $( "#enable_privilege").click(enablePrivilege);
+                $( "#grant_privilege").click(grantPrivilege);
+                $( "#revoke_privilege").click(revokePrivilege);
+	        });
+       
+       
+       
+
+//--------------------------------------------------------------------------------------------	  
+	  
+	  (function( $ ) {
+		$.widget( "ui.combobox", {
+			_create: function() {
+				var self = this,
+					select = this.element.hide(),
+					selected = select.children( ":selected" ),
+					value = selected.val() ? selected.text() : "";
+				var input = this.input = $( "<input>" )
+					.insertAfter( select )
+					.val( value )
+					.autocomplete({
+						delay: 0,
+						minLength: 0,
+						source: function( request, response ) {
+							var matcher = new RegExp( $.ui.autocomplete.escapeRegex(request.term), "i" );
+							response( select.children( "option" ).map(function() {
+								var text = $( this ).text();
+								if ( this.value && ( !request.term || matcher.test(text) ) )
+									return {
+										label: text.replace(
+											new RegExp(
+												"(?![^&;]+;)(?!<[^<>]*)(" +
+												$.ui.autocomplete.escapeRegex(request.term) +
+												")(?![^<>]*>)(?![^&;]+;)", "gi"
+											), "<strong>$1</strong>" ),
+										value: text,
+										option: this
+									};
+							}) );
+						},
+						select: function( event, ui ) {
+							ui.item.option.selected = true;
+							self._trigger( "selected", event, {
+								item: ui.item.option
+							});
+						},
+						change: function( event, ui ) {
+							if ( !ui.item ) {
+								var matcher = new RegExp( "^" + $.ui.autocomplete.escapeRegex( $(this).val() ) + "$", "i" ),
+									valid = false;
+								select.children( "option" ).each(function() {
+									if ( $( this ).text().match( matcher ) ) {
+										this.selected = valid = true;
+										return false;
+									}
+								});
+								if ( !valid ) {
+									// remove invalid value, as it didn't match anything
+									$( this ).val( "" );
+									select.val( "" );
+									input.data( "autocomplete" ).term = "";
+									return false;
+								}
+							}
+						}
+					})
+					.addClass( "ui-widget ui-widget-content ui-corner-left" );
+
+				input.data( "autocomplete" )._renderItem = function( ul, item ) {
+					return $( "<li></li>" )
+						.data( "item.autocomplete", item )
+						.append( "<a>" + item.label + "</a>" )
+						.appendTo( ul );
+				};
+
+				this.button = $( "<button type='button'>&nbsp;</button>" )
+					.attr( "tabIndex", -1 )
+					.attr( "title", "Show All Items" )
+					.insertAfter( input )
+					.button({
+						icons: {
+							primary: "ui-icon-triangle-1-s"
+						},
+						text: false
+					})
+					.removeClass( "ui-corner-all" )
+					.addClass( "ui-corner-right ui-button-icon" )
+					.click(function() {
+						// close if already visible
+						if ( input.autocomplete( "widget" ).is( ":visible" ) ) {
+							input.autocomplete( "close" );
+							return;
+						}
+
+						// work around a bug (likely same cause as #5265)
+						$( this ).blur();
+
+						// pass empty string as value to search for, displaying all results
+						input.autocomplete( "search", "" );
+						input.focus();
+					});
+			},
+
+			destroy: function() {
+				this.input.remove();
+				this.button.remove();
+				this.element.show();
+				$.Widget.prototype.destroy.call( this );
+			}
+		});
+	})( jQuery );
+ 
+         </script>
+    </head>
+    <body>
+        <div align="center">
+  <table class="table">
+      <tr>
+          <td class="td">
+            Privilege Name
+          </td>
+	  <td>
+	    <input type="text" id="privilege_name" />
+	  </td>
+      </tr>
+      <tr>
+          <td>
+            Privilege Level
+          </td>
+	  <td>
+	    <input type="text" id="privilege_level" />
+	  </td>
+      </tr>
+      <tr>
+          <td>
+            Resource
+          </td>
+	  <td>
+      
+          <input type="text" id="resource" size="50"  />
+        
+	  </td>
+      </tr>
+      <tr>
+          <td></td>
+          <td>
+            <div class="demo">
+	  <button id="add_resource">Add Resource</button>
+	  <button id="reset">Reset</button>
+	  </div>
+          </td>
+      </tr>
+      
+
+      
+      <tr>
+          <td>
+           
+          </td>
+	  <td>
+	  <div class="demo">
+	  <button id="create_privilege">Create Privilege</button>
+	  </div>
+	  </td>
+      </tr>
+      
+  </table>
+    
+     <table class="table">
+      <tr>
+          <td class="td">
+            Privilege Name
+          </td>
+	  <td>
+	    <input type="text" id="view_name" />
+	  </td>
+      </tr>
+      <tr>
+          <td>
+            Privilege Level
+          </td>
+	  <td>
+              <input type="text" id="view_level" />
+	  </td>
+      </tr>
+      
+        <tr>
+          <td>
+            Access State
+          </td>
+	  <td>
+              <input type="text" id="view_state" />
+	  </td>
+      </tr>
+        <tr>
+          <td>
+            Created
+          </td>
+	  <td>
+              <input type="text" id="view_created" />
+	  </td>
+      </tr>
+      
+       <tr>
+          <td>
+            Privilege ID
+          </td>
+	  <td>
+              <input type="text" id="view_id" />
+	  </td>
+      </tr>
+      
+      <tr>
+          <td>
+           User Groups
+          </td>
+          <td>
+           <div class="ui-widget">
+	   <select id="user_groups">
+	   <option value="">Groups</option>
+	</select>
+</div> 
+          </td>
+      </tr>
+      
+      <tr>
+          <td>
+
+          </td>
+          <td>
+          <div class="demo">
+	    <button id="view_privilege">View Privilege</button>
+	  </div>
+          </td>
+      </tr>
+      
+        </table>
+            
+      <table id="buttons">
+        <tr>
+            <td>
+		<div class="demo">
+	           <button id="delete_privilege">Delete Privilege</button>
+	     </div>
+            </td>
+             <td>
+              	<div class="demo">
+	          <button id="disable_privilege">Disable Privilege</button>
+	         </div>
+            </td>
+            <td>
+              	<div class="demo">
+	          <button id="enable_privilege">Enable Privilege</button>
+	         </div>
+            </td>
+            <td>
+	    <div class="demo">
+	             <button id="grant_privilege">Grant To Group</button>
+	     </div>
+            </td>
+            <td>
+             	  <div class="demo">
+	               <button id="revoke_privilege">Revoke From Group</button>
+	          </div>
+            </td>
+        </tr>
+    </table>
+    
+        </div>
+    </body>
+</html>

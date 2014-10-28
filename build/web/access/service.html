@@ -1,0 +1,286 @@
+
+<!DOCTYPE html>
+<html>
+    <head>
+        <title>Services</title>
+        <meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+     <script type="text/javascript" src="scripts/ui.js"></script>
+       <link rel="stylesheet" href="../themes/base/jquery.ui.all.css">
+	<script src="../js/jquery-1.7.2.js"></script>
+	<script src="../ui/jquery.ui.core.js"></script>
+	<script src="../ui/jquery.ui.widget.js"></script>
+	<script src="../ui/jquery.ui.button.js"></script>
+        <script src="../ui/jquery.ui.position.js"></script>
+	<script src="../ui/jquery.ui.autocomplete.js"></script>
+         <script type="text/javascript" src="files/util.js"></script>
+	<link rel="stylesheet" href="../css/demos.css">
+	<style>
+	.ui-button { margin-left: -1px; }
+	.ui-button-icon-only .ui-button-text { padding: 0.35em; } 
+	.ui-autocomplete-input { margin: 0; padding: 0.48em 0 0.47em 0.45em; }
+	</style>	
+	 <link rel="stylesheet" type="text/css" href="files/access.css" />
+         <script type="text/javascript">
+             
+       var serverUrl='/web/server';
+       
+       
+      function createService(){
+         var servName=getValue("service_name");
+         var level=getValue("service_level"); 
+         var clazz=getValue("service_class"); 
+            if(servName=="" || servName==null){
+              parent.setInfo("Service name is required",true);
+              focus("service_name");
+              return
+             }
+            if(level=="" || level==null){
+               parent.setInfo("Service level is required",true);
+               focus("service_level");
+               return;
+             }
+             if(clazz=="" || clazz==null){
+               parent.setInfo("Service class is required",true);
+               focus("service_class");
+               return;
+             }
+             if(isNaN(level)){
+               parent.setInfo("Invalid service level",true);
+               focus("service_level");
+               return;   
+             }
+             var conf=confirm("Create Service ?");
+             if(!conf){
+              return;   
+             }
+           var json={
+                 request_header : {
+                     request_msg : "create_service",
+                     request_svc :"privilege_service"
+                  },
+                  
+                  request_object : {
+                     name : servName,
+                     level : level,
+                     clazz : clazz
+                  }
+              }
+              
+               Ajax.run({
+                  url : serverUrl,
+                  type : "post",
+                  data : json,
+                  error : function(err){
+                     parent.setInfo("An error occurred when attempting to create service",true);
+                  },
+                  success : function(json){
+                       var resp=json.response.data
+                       if(json.response.type=="exception"){
+                          parent.setInfo(json.response.ex_reason,true);  
+                       }
+                       else if(resp=="success"){
+                         parent.setInfo("Service created successfully",false);  
+                       }
+                      else{
+                       parent.setInfo("Service creation failed: "+json.response.ex_reason,false); 
+                     }
+                } 
+          }); 
+     }
+     
+
+     
+     function viewService(){
+        var name=getValue("view_name");
+           if(name=="" || name==null){
+              parent.setInfo("Service name is required",true);
+              focus("view_name");
+              return
+         }
+        var json={
+                 request_header : {
+                     request_msg : "view_service",
+                     request_svc :"privilege_service"
+                  },
+                  
+                  request_object : {
+                     name : name
+                  }
+              }
+              
+               Ajax.run({
+                  url : serverUrl,
+                  type : "post",
+                  data : json,
+                  error : function(err){
+                     showInfo("error","An error occurred ");
+                  },
+                  success : function(json){
+                     
+                  if(json.response.type=="exception"){
+                        parent.setInfo(json.response.ex_reason,true);  
+                     }
+                   else{
+                    var details=json.response.data;
+                    setValue("view_class",details.clazz);
+                    setValue("view_id",details.id)
+                   }
+                } 
+          });
+     }
+     
+
+  
+  
+  function deleteService(){
+    var name=getValue("view_name");
+        if(name=="" || name==null){
+              parent.setInfo("Service name is required",true);
+              focus("view_name");
+              return
+         }  
+            var conf=confirm("Delete Service ?");
+             if(!conf){
+              return;   
+               }  
+      var json={
+                 request_header : {
+                     request_msg : "delete_service",
+                     request_svc :"privilege_service"
+                  },
+                  
+                  request_object : {
+                     name : name
+                  }
+              }
+              
+               Ajax.run({
+                  url : serverUrl,
+                  type : "post",
+                  data : json,
+                  error : function(err){
+                     showInfo("error","An error occurred ");
+                  },
+                  success : function(json){
+                       var resp=json.response.data
+                       if(json.response.type=="exception"){
+                          parent.setInfo(json.response.ex_reason,true);  
+                       }
+                        else if(resp=="success"){
+                             parent.setInfo("Service deleted successfully");  
+                         }
+                       else{
+                         parent.setInfo("Service deletion failed");   
+                     }
+                } 
+          });
+  
+   }
+   
+
+   
+
+        
+             	$(function() {
+		$( "button", ".demo" ).button();
+		$( "#create_service").click(createService);
+                $( "#view_service").click(viewService);
+                $( "#delete_service").click(deleteService);
+	        });
+       
+       
+       
+         </script>
+    </head>
+    <body>
+        <div align="center">
+  <table class="table">
+      <tr>
+          <td class="td">
+            Service Name
+          </td>
+	  <td>
+	    <input type="text" id="service_name" />
+	  </td>
+      </tr>
+      <tr>
+          <td>
+            Service Level
+          </td>
+	  <td>
+	    <input type="text" id="service_level" />
+	  </td>
+      </tr>
+      <tr>
+          <td>
+            Service Class
+          </td>
+	  <td>
+      
+          <input type="text" id="service_class" size="50"  />
+        
+	  </td>
+      </tr>
+      
+      
+      
+      <tr>
+          <td>
+           
+          </td>
+	  <td>
+	  <div class="demo">
+	  <button id="create_service">Create Service</button>
+	  </div>
+	  </td>
+      </tr>
+      
+  </table>
+    
+     <table class="table">
+      <tr>
+          <td class="td">
+            Service Name
+          </td>
+	  <td>
+	    <input type="text" id="view_name" />
+	  </td>
+      </tr>
+      
+      
+       <tr>
+          <td>
+            Service ID
+          </td>
+	  <td>
+              <input type="text" id="view_id" />
+	  </td>
+      </tr>
+      
+      <tr>
+          <td>
+            Service Class
+          </td>
+	  <td>
+              <input type="text" id="view_class"  size="50"/>
+	  </td>
+      </tr>
+      
+      <tr>
+          <td>
+
+          </td>
+          <td>
+          <div class="demo">
+	    <button id="view_service">View Service</button>
+            &nbsp;&nbsp;
+            <button id="delete_service">Delete Service</button>
+	  </div>
+          </td>
+      </tr>
+      
+        </table>
+            
+        </div>
+    </body>
+</html>

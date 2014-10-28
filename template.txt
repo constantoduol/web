@@ -1,0 +1,6 @@
+template system
+  student name ${data : {table : 'student_data' ,column : 'student_name' }}
+  student exam results  ${data : {table : 'midterm_2010'}, references : {table : 'student_data',column : 'id'}, template : exam }
+  execute:
+  select student_name from student_data where id=?
+  

@@ -49,7 +49,7 @@ public class MarkService implements Serviceable {
     
     @Endpoint(name="all_exams")
     public void allExams(Server serv,ClientWorker worker){
-       JSONObject data = db.query("SELECT * FROM EXAM_DATA ORDER BY EXAM_DEADLINE ASC");
+       JSONObject data = db.query("SELECT * FROM EXAM_DATA ORDER BY EXAM_DEADLINE DESC");
        worker.setResponseData(data);
        serv.messageToClient(worker); 
     }
@@ -98,7 +98,7 @@ public class MarkService implements Serviceable {
             }
         
       }
-        builder.append(" FROM EXAM_DATA");
+        builder.append(" FROM EXAM_DATA ORDER BY EXAM_DEADLINE DESC");
         JSONObject data = db.query(builder.toString());
         worker.setResponseData(data);
         serv.messageToClient(worker); 
@@ -308,13 +308,12 @@ public class MarkService implements Serviceable {
     
    public static JSONObject openAdvancedReportForm(String studentId,String examIds,String streamId,String classId){
        try {
-         StringTokenizer st=new StringTokenizer(examIds,",");
-         ArrayList<String> subList=new ArrayList();
+         StringTokenizer st = new StringTokenizer(examIds,",");
+         ArrayList<String> subList = new ArrayList();
          int tokenCount=0;
          while(st.hasMoreTokens()){
-            if(tokenCount==3){
+            if(tokenCount == 3)
               break;
-            }
             subList.add(st.nextToken());
             tokenCount++;
          }
@@ -327,18 +326,18 @@ public class MarkService implements Serviceable {
          JSONObject studentStreamData;
          JSONObject subjectData;
          if(streamId.equals("all")){
-             studentStreamData=db.query("SELECT ID, STUDENT_NAME FROM STUDENT_DATA WHERE  STUDENT_CLASS=?",classId);
+               studentStreamData = db.query("SELECT ID, STUDENT_NAME FROM STUDENT_DATA WHERE  STUDENT_CLASS=?",classId);
                //on the report we want to see subjects that the student is doing currently and not subjects that dont exist
                //or have been removed
                JSONObject streamIds = db.query("SELECT STREAM_ID FROM CLASS_STREAMS WHERE CLASS_ID=? ",classId);
-               JSONArray streams=streamIds.optJSONArray("STREAM_ID");
-               ArrayList found=new ArrayList();
-               JSONObject allCurrentSubjects=new JSONObject();
-               for(int n=0; n<streams.length(); n++){
-                  subjectData=db.query("SELECT  ID, SUBJECT_NAME,CREATED,SUBJECT_ID FROM SUBJECT_DATA,STREAM_SUBJECTS WHERE SUBJECT_DATA.ID=STREAM_SUBJECTS.SUBJECT_ID AND STREAM_SUBJECTS.STREAM_ID=? ORDER BY CREATED ASC",streams.optString(n));
-                  for(int m=0; m<subjectData.optJSONArray("SUBJECT_NAME").length(); m++){
+               JSONArray streams = streamIds.optJSONArray("STREAM_ID");
+               ArrayList found = new ArrayList();
+               JSONObject allCurrentSubjects = new JSONObject();
+               for(int n = 0; n < streams.length(); n++){
+                  subjectData = db.query("SELECT  ID, SUBJECT_NAME,CREATED,SUBJECT_ID FROM SUBJECT_DATA,STREAM_SUBJECTS WHERE SUBJECT_DATA.ID=STREAM_SUBJECTS.SUBJECT_ID AND STREAM_SUBJECTS.STREAM_ID=? ORDER BY CREATED ASC",streams.optString(n));
+                  for(int m = 0; m < subjectData.optJSONArray("SUBJECT_NAME").length(); m++){
                      String subjectName=subjectData.optJSONArray("SUBJECT_NAME").optString(m);
-                     if(found.indexOf(subjectName)==-1){
+                     if(found.indexOf(subjectName) == -1){
                          allCurrentSubjects.accumulate("SUBJECT_NAME",subjectName);
                          allCurrentSubjects.accumulate("CREATED",subjectData.optJSONArray("CREATED").optString(m));
                          allCurrentSubjects.accumulate("ID",subjectData.optJSONArray("ID").optString(m));
@@ -346,11 +345,11 @@ public class MarkService implements Serviceable {
                      }
                   }
                }
-               subjectData=allCurrentSubjects;
+               subjectData = allCurrentSubjects;
          }
          else{
-             studentStreamData=db.query("SELECT ID, STUDENT_NAME FROM STUDENT_DATA WHERE STUDENT_STREAM=? AND STUDENT_CLASS=?",streamId,classId);  
-             subjectData=db.query("SELECT  ID, SUBJECT_NAME,CREATED FROM SUBJECT_DATA,STREAM_SUBJECTS WHERE SUBJECT_DATA.ID=STREAM_SUBJECTS.SUBJECT_ID AND STREAM_SUBJECTS.STREAM_ID=? ORDER BY CREATED ASC",streamId);
+             studentStreamData = db.query("SELECT ID, STUDENT_NAME FROM STUDENT_DATA WHERE STUDENT_STREAM=? AND STUDENT_CLASS=?",streamId,classId);  
+             subjectData = db.query("SELECT  ID, SUBJECT_NAME,CREATED FROM SUBJECT_DATA,STREAM_SUBJECTS WHERE SUBJECT_DATA.ID=STREAM_SUBJECTS.SUBJECT_ID AND STREAM_SUBJECTS.STREAM_ID=? ORDER BY CREATED ASC",streamId);
          }   
          int totalStudentsInStream = studentStreamData.optJSONArray("ID").length();
          int totalStudentsInClass = studentClassData.optJSONArray("ID").length();
@@ -364,22 +363,21 @@ public class MarkService implements Serviceable {
          
          Double total = 0.0;
          Double average = 0.0;
-         for(int m = subList.size() - 1; m > -1; m--){
+         for(int m = 0; m < subList.size(); m++){
             String currentExamId = subList.get(m);
            //select marks for subjects only,ignore papers
             JSONObject markData = db.query("SELECT STUDENT_ID, SUBJECT_ID, PAPER_ID, MARK_VALUE FROM MARK_DATA WHERE EXAM_ID = ? AND STUDENT_ID=? AND SUBJECT_ID=PAPER_ID ORDER BY SUBJECT_ID DESC",currentExamId,studentId);
-            System.out.println(markData);
             allStudentMarks.put(markData);
             JSONObject classMarkData = db.query("SELECT STUDENT_ID, SUBJECT_ID, PAPER_ID, MARK_VALUE FROM MARK_DATA WHERE EXAM_ID = ? AND  CLASS_ID=? AND SUBJECT_ID=PAPER_ID ORDER BY STUDENT_ID ASC,SUBJECT_ID ASC",currentExamId,classId);
             studentClassMeta = db.query("SELECT STUDENT_ID,GRAND_VALUE,AVERAGE_VALUE FROM MARK_META_DATA WHERE EXAM_ID = ? "
-                            + " AND CLASS_ID = ? ORDER BY GRAND_VALUE DESC",currentExamId,classId);
+                            + " AND CLASS_ID = ? ORDER BY STUDENT_ID DESC",currentExamId,classId);
             if(streamId.equals("all")){
                 streamMarkData = classMarkData;
                 studentStreamMeta = studentClassMeta;
             }
             else{
                studentStreamMeta = db.query("SELECT STUDENT_ID,GRAND_VALUE,AVERAGE_VALUE FROM MARK_META_DATA WHERE EXAM_ID = ? "
-                            + " AND STREAM_ID = ? ORDER BY GRAND_VALUE DESC",currentExamId,streamId);
+                            + " AND STREAM_ID = ? ORDER BY STUDENT_ID DESC",currentExamId,streamId);
                streamMarkData = db.query("SELECT STUDENT_ID, SUBJECT_ID, PAPER_ID, MARK_VALUE FROM MARK_DATA WHERE EXAM_ID = ? AND STREAM_ID=? AND CLASS_ID=? AND SUBJECT_ID=PAPER_ID ORDER BY STUDENT_ID ASC,SUBJECT_ID ASC",currentExamId,streamId,classId);  
             }
             
@@ -537,6 +535,7 @@ public class MarkService implements Serviceable {
               }   
              }       
           
+           
            int streamCount = 0;
            for(int x = 0; x < totalStudentsInStream; x++){
               double score = streamMarkGrandAverage.optDouble(x);
@@ -557,23 +556,23 @@ public class MarkService implements Serviceable {
            
             JSONObject subjectRankData = new JSONObject();
             JSONArray studentSubjects = allStudentMarks.optJSONObject(0).optJSONArray("SUBJECT_ID");
-            int count = 0;
             for(int y = 0; y < studentSubjects.length(); y++){
               String subId = studentSubjects.optString(y); //the current subject
               double currentValue = avMarks.optDouble(y); //the current mark
               subjectRankData.put(subId,1);
+              int count = 0;
               for(int x = 0; x < subjectIdClasses.length(); x++){
                   double markValue = classSubjectAverages.optDouble(x);
                   String dbSubId = subjectIdClasses.optString(x);
-                  if(currentValue > markValue && subId.equals(dbSubId)){
+                  if(markValue > currentValue && subId.equals(dbSubId)){
                     count++;
                     subjectRankData.put(subId,count+1);
                   }
               }
-              count=0;
             }
             
-            JSONObject obj=new JSONObject();
+            JSONObject obj = new JSONObject();
+            total =  total.isNaN() ? 0 : total;
             obj.put("grand_total", total);
             obj.put("max_score", grandTotal);
             average =  average.isNaN() ? 0 : average;
@@ -592,6 +591,7 @@ public class MarkService implements Serviceable {
             return obj;
        }
        catch(Exception e){
+         e.printStackTrace();
          return null; 
       }  
     }
@@ -679,7 +679,7 @@ public class MarkService implements Serviceable {
             double accountBalance = db.query("SELECT ACCOUNT_BALANCE FROM ACCOUNT_DATA WHERE ID=? ",studentId).optJSONArray("ACCOUNT_BALANCE").optDouble(0);
             JSONObject subjectData;
             JSONObject studentStreamMeta;
-            JSONObject studentClassMeta = db.query("SELECT STUDENT_ID FROM MARK_META_DATA WHERE EXAM_ID = ? "
+            JSONObject studentClassMeta = db.query("SELECT STUDENT_ID,GRAND_VALUE FROM MARK_META_DATA WHERE EXAM_ID = ? "
                             + " AND CLASS_ID = ? ORDER BY GRAND_VALUE DESC",examId,classId);
             if(streamId.equals("all")){
                 studentStreamMeta = db.query("SELECT STUDENT_ID,GRAND_VALUE,AVERAGE_VALUE FROM MARK_META_DATA WHERE EXAM_ID = ? "
@@ -721,6 +721,16 @@ public class MarkService implements Serviceable {
             
            int streamRank = studentStreamMeta.optJSONArray("STUDENT_ID").toList().indexOf(studentId);
            int classRank = studentClassMeta.optJSONArray("STUDENT_ID").toList().indexOf(studentId);
+           
+           Object streamMarkValue = studentStreamMeta.optJSONArray("GRAND_VALUE").opt(streamRank);
+           int streamMarkRank = studentStreamMeta.optJSONArray("GRAND_VALUE").toList().indexOf(streamMarkValue);
+           
+           Object classMarkValue = studentClassMeta.optJSONArray("GRAND_VALUE").opt(classRank);
+           int classMarkRank = studentClassMeta.optJSONArray("GRAND_VALUE").toList().indexOf(classMarkValue);
+           
+           streamRank = streamRank <= streamMarkRank ? streamRank : streamMarkRank;
+           classRank = classRank <= classMarkRank ? classRank : classMarkRank;
+           
            Double total = studentStreamMeta.optJSONArray("GRAND_VALUE").optDouble(streamRank);
            Double average = studentStreamMeta.optJSONArray("AVERAGE_VALUE").optDouble(streamRank);
            
@@ -989,25 +999,19 @@ public class MarkService implements Serviceable {
             String classId = requestData.optString("class_id");
             String streamId = requestData.optString("stream_id");
             if(streamId.equals("all")){
+                //you only save data when you have selected a stream
                 worker.setResponseData(Message.SUCCESS);
                 serv.messageToClient(worker); 
                 return;
             }
             Object[] data = prepareSaveMarkData(streamId, classId);
-            //return new Object[]{subjectData,grandFormula,averageFormula,streamName,allSubjects};
-            
             while(ids.hasNext()){
                String studentId = (String)ids.next(); //student id
                if(studentId.equals("undefined"))
                    continue;
                String grand = data[1].toString();
                String average = data[2].toString();
-               //JSONObject studentData=db.query("SELECT STUDENT_STREAM,STUDENT_CLASS FROM STUDENT_DATA WHERE ID=?",studentId);
-               //String streamId = studentData.optJSONArray("STUDENT_STREAM").optString(0);
-               //classId = studentData.optJSONArray("STUDENT_CLASS").optString(0);
                JSONArray marks = markData.optJSONArray(studentId);
-              
-               
                for(int x = 0; x < marks.length(); x++){
                   JSONArray mark = marks.optJSONArray(x); 
                   String recordId = rand.nextMixedRandom();
@@ -1172,7 +1176,7 @@ public class MarkService implements Serviceable {
             JSONObject data = db.query("SELECT * FROM REPORT_FORM_DATA ORDER BY CREATED ASC");
             //these are extra columns that we need to display on the marksheet grid
             JSONArray extraColumns = db.query("SELECT FIELD_VALUE FROM REPORT_FORM_DATA WHERE FIELD_TYPE='extra_mark_sheet_field'").optJSONArray("FIELD_VALUE"); 
-            String theColumns=extraColumns.optString(0);
+            String theColumns = extraColumns.optString(0);
             String[] allExtraCols = theColumns.split(",");
             StringBuilder extraColBuilder=new StringBuilder("SELECT ID ,");
             for(int x = 0; x < allExtraCols.length; x++){

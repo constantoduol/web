@@ -115,36 +115,42 @@ public class EditMarkService implements Serviceable {
         }
     }
      
-     @Endpoint(name="save_mark_sheet_design")
+    @Endpoint(name="save_mark_sheet_design")
     public void saveMarkSheetDesign(Server serv,ClientWorker worker){
         try {
             JSONObject requestData = worker.getRequestData();
-            String classId=requestData.optString("class_id");  
+            String classId = requestData.optString("class_id");  
             JSONArray subjectIds = requestData.optJSONArray("subject_ids");
-            JSONArray designValues=requestData.optJSONArray("design_values");
+            JSONArray subjectPrecisions = requestData.optJSONArray("subject_precisions");
+            JSONArray designValues = requestData.optJSONArray("design_values");
             String grandFormula = requestData.optString("grand_formula");
             String averageFormula = requestData.optString("average_formula");
-            String round = requestData.optString("round_precision");
-            UserAction action=new UserAction(serv, worker, "SAVE MARK SHEET DESIGN FOR "+classId);
-            UniqueRandom rand=new UniqueRandom(6);
-            for(int x=0; x<subjectIds.length(); x++){
-               String subjectId=subjectIds.optString(x);
-               String designValue=designValues.optString(x);
-              
-                 db.execute("DELETE FROM MARK_SHEET_DESIGN WHERE CLASS_ID='"+classId+"' AND SUBJECT_ID='"+subjectId+"'");
+            String aprecision = requestData.optString("a_precision");
+            String gprecision = requestData.optString("g_precision");
+            UserAction action = new UserAction(serv, worker, "SAVE MARK SHEET DESIGN FOR "+classId);
+            UniqueRandom rand = new UniqueRandom(6);
+            for(int x = 0; x < subjectIds.length(); x++){
+               String subjectId = subjectIds.optString(x);
+               String designValue = designValues.optString(x);
+               String precId = "pre_" + subjectId.substring(0, 4);
+               String subjectPrecision = subjectPrecisions.optString(x);
+               db.execute("DELETE FROM MARK_SHEET_DESIGN WHERE CLASS_ID='"+classId+"' AND SUBJECT_ID='"+subjectId+"'");
+               db.execute("DELETE FROM MARK_SHEET_DESIGN WHERE CLASS_ID='"+classId+"' AND SUBJECT_ID='"+precId+"'");
                   //insert a new value
-                 db.doInsert("MARK_SHEET_DESIGN",new String[]{rand.nextMixedRandom(),classId,subjectId,designValue,"!NOW()"});
+               db.doInsert("MARK_SHEET_DESIGN",new String[]{rand.nextMixedRandom(),classId,subjectId,designValue,"!NOW()"});
+               db.doInsert("MARK_SHEET_DESIGN",new String[]{rand.nextMixedRandom(),classId,precId,subjectPrecision,"!NOW()"});
                
             }
             //save for the average and grand total
-        
-               db.execute("DELETE FROM MARK_SHEET_DESIGN  WHERE CLASS_ID='"+classId+"' AND SUBJECT_ID='grand'");
-               db.execute("DELETE FROM MARK_SHEET_DESIGN  WHERE CLASS_ID='"+classId+"' AND SUBJECT_ID='average'"); 
-               db.execute("DELETE FROM MARK_SHEET_DESIGN  WHERE CLASS_ID='"+classId+"' AND SUBJECT_ID='round'"); 
-          
-               db.doInsert("MARK_SHEET_DESIGN",new String[]{rand.nextMixedRandom(),classId,"grand",grandFormula,"!NOW()"});
-               db.doInsert("MARK_SHEET_DESIGN",new String[]{rand.nextMixedRandom(),classId,"average",averageFormula,"!NOW()"});
-               db.doInsert("MARK_SHEET_DESIGN",new String[]{rand.nextMixedRandom(),classId,"round",round,"!NOW()"});
+            db.execute("DELETE FROM MARK_SHEET_DESIGN  WHERE CLASS_ID='"+classId+"' AND SUBJECT_ID='grand'");
+            db.execute("DELETE FROM MARK_SHEET_DESIGN  WHERE CLASS_ID='"+classId+"' AND SUBJECT_ID='average'");
+            db.execute("DELETE FROM MARK_SHEET_DESIGN  WHERE CLASS_ID='"+classId+"' AND SUBJECT_ID='a_prec'");
+            db.execute("DELETE FROM MARK_SHEET_DESIGN  WHERE CLASS_ID='"+classId+"' AND SUBJECT_ID='g_prec'");
+            
+            db.doInsert("MARK_SHEET_DESIGN",new String[]{rand.nextMixedRandom(),classId,"grand",grandFormula,"!NOW()"});
+            db.doInsert("MARK_SHEET_DESIGN",new String[]{rand.nextMixedRandom(),classId,"average",averageFormula,"!NOW()"});
+            db.doInsert("MARK_SHEET_DESIGN",new String[]{rand.nextMixedRandom(),classId,"a_prec",aprecision,"!NOW()"});
+            db.doInsert("MARK_SHEET_DESIGN",new String[]{rand.nextMixedRandom(),classId,"g_prec",gprecision,"!NOW()"});
             
             action.saveAction();
             worker.setResponseData(Message.SUCCESS);

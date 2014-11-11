@@ -14,6 +14,7 @@ import com.quest.access.useraccess.services.annotations.Endpoint;
 import com.quest.access.useraccess.services.annotations.WebService;
 import com.quest.access.useraccess.verification.UserAction;
 import com.quest.servlets.ClientWorker;
+import java.util.ArrayList;
 import java.util.Calendar;
 import java.util.logging.Level;
 import java.util.logging.Logger;
@@ -226,7 +227,11 @@ public class EditStudentService implements Serviceable {
     /**
      *  we need a way of effectively archiving students who have left the school
      *  so that we can view their marks and data even after they have left the school
-     *  
+     *  to graduate a student
+     * 1. update his class_id and stream_id in student_data
+     * 2. update his class_id and stream_id in account_data
+     * 3. update his class_id and stream_id in mark_data and mark_meta_data
+     * 4. update the formulas for the class in mark_sheet_design
      * @param serv
      * @param worker 
      */
@@ -234,70 +239,75 @@ public class EditStudentService implements Serviceable {
     public void graduateStudents(Server serv,ClientWorker worker){
        try{
         JSONObject data = worker.getRequestData();
-        JSONArray currentStreamIds=data.optJSONArray("class_ids");
-        JSONArray newStreamIds = data.optJSONArray("new_class_ids");
-        UserAction action=new UserAction(serv, worker, "GRADUATE STUDENTS");
+        JSONArray currentStreamIds = data.optJSONArray("stream_ids");
+        JSONArray newStreamIds = data.optJSONArray("new_stream_ids");
+        UserAction action = new UserAction(serv, worker, "GRADUATE STUDENTS");
         //update references in exam tables
         //in account records
         //in account data
-        UniqueRandom rand =new UniqueRandom(7);
-        UniqueRandom rand1 =new UniqueRandom(6);
+        UniqueRandom rand = new UniqueRandom(7);
+        UniqueRandom rand1 = new UniqueRandom(6);
         int year = Calendar.getInstance().get(Calendar.YEAR);
-        for(int x=0; x<currentStreamIds.length(); x++){
+        ArrayList<String[]> realIds = new ArrayList();
+        for(int x = 0; x < currentStreamIds.length(); x++){
            String oldStreamId = currentStreamIds.optString(x);
-           String newStreamId=newStreamIds.optString(x);
+           String newStreamId = newStreamIds.optString(x);
            String newClassId = db.query("SELECT CLASS_ID FROM CLASS_STREAMS WHERE STREAM_ID = ?",newStreamId).optJSONArray("CLASS_ID").optString(0);
            String oldClassId = db.query("SELECT CLASS_ID FROM CLASS_STREAMS WHERE STREAM_ID = ?",oldStreamId).optJSONArray("CLASS_ID").optString(0);
-           String archiveClassId = "AR_"+rand.nextMixedRandom();
-           boolean exists = db.ifValueExists(archiveClassId,"MARK_SHEET_DESIGN","CLASS_ID");
-           if(!exists){
-                JSONObject marksheetDesign = db.query()
-                   .select("SUBJECT_ID,DESIGN")
-                   .from("MARK_SHEET_DESIGN")
-                   .where("CLASS_ID = '"+oldClassId+"'")
-                   .execute();
-                JSONArray subjectIds = marksheetDesign.optJSONArray("SUBJECT_ID");
-                JSONArray design = marksheetDesign.optJSONArray("DESIGN");
-                for(int z = 0; z<subjectIds.length(); z++){
-                   db.query()
-                           .insert("MARK_SHEET_DESIGN")
-                           .columns("ID,CLASS_ID,SUBJECT_ID,DESIGN,CREATED")
-                           .values("'"+rand1.nextMixedRandom()+"','"+archiveClassId+"', '"+subjectIds.optString(z)+"', '"+design.optString(z)+"',NOW()")
-                           .execute();
-                }
-           }
            if(newStreamId.equals("archive")){
               //this is a request to archive the records of this stream
               //so we will generate a new archive stream id and archive class id
-              
-              String currentClassName = db.query()
+              //copy the previous class streams to this new class
+
+               String currentClassName = db.query()
                       .select("CLASS_NAME")
                       .from("CLASS_DATA")
-                      .where("ID='"+oldClassId+"'")
+                      .where("ID = '"+oldClassId+"'")
                       .execute()
                       .optJSONArray("CLASS_NAME")
                       .optString(0);
+               String archiveClassName = "AR "+year+" "+currentClassName; //AR 2014 8
+               String storedArchiveClassId = db.query("SELECT ID FROM CLASS_DATA WHERE CLASS_NAME = ?",archiveClassName).optJSONArray("ID").optString(0);
+               String archiveClassId = storedArchiveClassId.isEmpty() ? "AR_"+rand.nextMixedRandom() : storedArchiveClassId;
+               boolean exists = db.ifValueExists(archiveClassId,"MARK_SHEET_DESIGN","CLASS_ID");
+               if(!exists){
+                   JSONObject marksheetDesign = db.query()
+                           .select("SUBJECT_ID,DESIGN")
+                           .from("MARK_SHEET_DESIGN")
+                           .where("CLASS_ID = '"+oldClassId+"'")
+                           .execute();
+                   JSONArray subjectIds = marksheetDesign.optJSONArray("SUBJECT_ID");
+                   JSONArray design = marksheetDesign.optJSONArray("DESIGN");
+                   for(int z = 0; z<subjectIds.length(); z++){
+                       db.query()
+                               .insert("MARK_SHEET_DESIGN")
+                               .columns("ID,CLASS_ID,SUBJECT_ID,DESIGN,CREATED")
+                               .values("'"+rand1.nextMixedRandom()+"','"+archiveClassId+"', '"+subjectIds.optString(z)+"', '"+design.optString(z)+"',NOW()")
+                               .execute();
+                }
+             } //create the formulas in mark_sheet_design
+           
               String currentStreamName = db.query()
                       .select("STREAM_NAME")
                       .from("STREAM_DATA")
-                      .where("ID='"+oldStreamId+"'")
+                      .where("ID = '"+oldStreamId+"'")
                       .execute()
                       .optJSONArray("STREAM_NAME")
                       .optString(0);
-              String archiveClassName = "AR "+year+" "+currentClassName; //AR 2014 8
+              
               String archiveStreamId = "AR_"+rand.nextMixedRandom();
               String archiveStreamName = "AR "+year+" "+currentStreamName; //AR 2014 8A
               boolean classExists = db.ifValueExists(archiveClassName,"CLASS_DATA","CLASS_NAME");
-              boolean streamExists = db.ifValueExists(archiveClassName,"STREAM_DATA","STREAM_NAME");
+              boolean streamExists = db.ifValueExists(archiveStreamName,"STREAM_DATA","STREAM_NAME");
               if(!classExists){
-              db.query()
+                db.query()
                       .insert("CLASS_DATA")
                       .columns("ID,CLASS_NAME,CREATED")
                       .values("'"+archiveClassId+"','"+archiveClassName+"',NOW()")
                       .execute();
               }
               if(!streamExists){
-                db.query()
+                  db.query()
                       .insert("STREAM_DATA")
                       .columns("ID,STREAM_NAME,CREATED")
                       .values("'"+archiveStreamId+"','"+archiveStreamName+"',NOW()")
@@ -323,15 +333,30 @@ public class EditStudentService implements Serviceable {
                 }
               }
               
-                //update the formulas for this classes
+               
                 newStreamId = archiveStreamId;
                 newClassId = archiveClassId;
-           }     
-           
-          db.execute("UPDATE STUDENT_DATA SET STUDENT_STREAM='"+newStreamId+"' , STUDENT_CLASS='"+newClassId+"' WHERE STUDENT_STREAM='"+oldStreamId+"'");
-          db.execute("UPDATE ACCOUNT_RECORDS SET STREAM_ID='"+newStreamId+"', CLASS_ID='"+newClassId+"' WHERE STREAM_ID='"+oldStreamId+"'");
-          db.execute("UPDATE MARK_DATA SET STREAM_ID='"+newStreamId+"' , CLASS_ID='"+newClassId+"' WHERE STREAM_ID='"+oldStreamId+"'");
+           }
+          String dummyId = rand.nextMixedRandom();
+          String [] ids = new String [] {dummyId,newStreamId,newClassId};
+          realIds.add(ids);
+          db.execute("UPDATE STUDENT_DATA SET STUDENT_STREAM='"+dummyId+"' , STUDENT_CLASS='"+dummyId+"' WHERE STUDENT_STREAM='"+oldStreamId+"'");
+          db.execute("UPDATE ACCOUNT_RECORDS SET STREAM_ID='"+dummyId+"', CLASS_ID='"+dummyId+"' WHERE STREAM_ID='"+oldStreamId+"'");
+          db.execute("UPDATE MARK_DATA SET STREAM_ID='"+dummyId+"' , CLASS_ID='"+dummyId+"' WHERE STREAM_ID='"+oldStreamId+"'");
+          db.execute("UPDATE MARK_META_DATA SET STREAM_ID='"+dummyId+"' , CLASS_ID='"+dummyId+"' WHERE STREAM_ID='"+oldStreamId+"'");
+         }
+        
+        for(int y = 0; y < realIds.size(); y++){
+          String [] ids = realIds.get(y);
+          String dummyId = ids [0];
+          String newStreamId = ids[1];
+          String newClassId = ids[2];
+          db.execute("UPDATE STUDENT_DATA SET STUDENT_STREAM='"+newStreamId+"' , STUDENT_CLASS='"+newClassId+"' WHERE STUDENT_STREAM='"+dummyId+"'");
+          db.execute("UPDATE ACCOUNT_RECORDS SET STREAM_ID='"+newStreamId+"', CLASS_ID='"+newClassId+"' WHERE STREAM_ID='"+dummyId+"'");
+          db.execute("UPDATE MARK_DATA SET STREAM_ID='"+newStreamId+"' , CLASS_ID='"+newClassId+"' WHERE STREAM_ID='"+dummyId+"'");
+          db.execute("UPDATE MARK_META_DATA SET STREAM_ID='"+newStreamId+"' , CLASS_ID='"+newClassId+"' WHERE STREAM_ID='"+dummyId+"'"); 
         }
+        
         action.saveAction();
         worker.setResponseData(Message.SUCCESS);
         serv.messageToClient(worker);

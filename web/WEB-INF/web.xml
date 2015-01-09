@@ -3,6 +3,14 @@
     <servlet>
         <servlet-name>ServerLink</servlet-name>
         <servlet-class>com.quest.servlets.ServerLink</servlet-class>
+          <init-param>
+            <param-name>version-no</param-name>
+            <param-value>1.0.0.0</param-value>
+         </init-param>
+           <init-param>
+            <param-name>version-name</param-name>
+            <param-value>Coconut</param-value>
+         </init-param>
         <init-param>
             <param-name>database-name</param-name>
             <param-value>user_server</param-value>

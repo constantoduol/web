@@ -24,6 +24,7 @@ import java.util.List;
 import java.util.StringTokenizer;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import java.util.regex.Pattern;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
 import javax.script.ScriptException;
@@ -588,10 +589,10 @@ public class MarkService implements Serviceable {
             obj.put("fee_balance", accountBalance);  
             obj.put("teacher_data",teacherData);
             obj.put("formulas",design);
+            obj.put("student_trend",fetchTrend(studentId));
             return obj;
        }
        catch(Exception e){
-         e.printStackTrace();
          return null; 
       }  
     }
@@ -600,55 +601,61 @@ public class MarkService implements Serviceable {
     
     @Endpoint(name="student_trend")
     public void fetchStudentTrend(Server serv,ClientWorker worker){
-        try {
-            JSONObject requestData = worker.getRequestData();
-            String studentId=requestData.optString("student_id");
-            JSONObject examData=db.query("SELECT * FROM EXAM_DATA ORDER BY EXAM_DEADLINE DESC");
-            JSONObject subjectData=db.query("SELECT * FROM SUBJECT_DATA");
+        JSONObject requestData = worker.getRequestData();
+        String studentId = requestData.optString("student_id");
+        JSONObject data = fetchTrend(studentId);
+        worker.setResponseData(data);
+        serv.messageToClient(worker);
+    }
+    
+    private static JSONObject fetchTrend(String studentId){
+         try {
+            JSONObject examData = db.query("SELECT * FROM EXAM_DATA ORDER BY EXAM_DEADLINE DESC");
+            JSONObject subjectData = db.query("SELECT * FROM SUBJECT_DATA");
             JSONArray subjectNames = subjectData.optJSONArray("SUBJECT_NAME");
             JSONArray orderedSubjectIds = subjectData.optJSONArray("ID");
-            JSONArray examIds=examData.optJSONArray("ID");
-            JSONArray allSubjects=new JSONArray();
+            JSONArray examIds = examData.optJSONArray("ID");
+            JSONArray allSubjects = new JSONArray();
             JSONObject average = new JSONObject();
-            JSONObject subject=new JSONObject();
-            JSONArray theExams=new JSONArray();
-            for(int x=0; x<examIds.length(); x++){
-               String examId=examIds.optString(x);
+            JSONObject subject = new JSONObject();
+            JSONArray theExams = new JSONArray();
+            for(int x = 0; x < examIds.length(); x++){
+               String examId = examIds.optString(x);
                JSONObject markData = db.query("SELECT SUBJECT_ID, PAPER_ID, MARK_VALUE FROM MARK_DATA WHERE EXAM_ID = ? AND  STUDENT_ID=? AND SUBJECT_ID=PAPER_ID ORDER BY SUBJECT_ID DESC",examId,studentId);
-               JSONArray subjectIds=markData.optJSONArray("SUBJECT_ID");
-               JSONArray marks=markData.optJSONArray("MARK_VALUE");
-               float examAverage=0f;
-               for(int y=0; y<subjectIds.length(); y++){
-                  String subjectId=subjectIds.optString(y);
+               JSONArray subjectIds = markData.optJSONArray("SUBJECT_ID");
+               JSONArray marks = markData.optJSONArray("MARK_VALUE");
+               float examAverage = 0f;
+               for(int y = 0; y < subjectIds.length(); y++){
+                  String subjectId = subjectIds.optString(y);
                   String markValue = marks.optString(y);
                   if(markValue.trim().equals("")){
                      markValue="0"; 
                   }
                   float mark = Float.parseFloat(markValue);
-                  examAverage=examAverage+mark;
-                  int index=orderedSubjectIds.toList().indexOf(subjectId);
-                  String subjectName=subjectNames.optString(index);
+                  examAverage = examAverage + mark;
+                  int index = orderedSubjectIds.toList().indexOf(subjectId);
+                  String subjectName = subjectNames.optString(index);
                   subject.accumulate(subjectName, markValue);
                }
-               examAverage=examAverage/subjectIds.length();
+               examAverage = examAverage/subjectIds.length();
                if(subjectIds.length()==0){
                   
                }
-               else{
+               else {
                    average.accumulate("average",examAverage);
                    theExams.put(examData.optJSONArray("EXAM_NAME").optString(x).replace("_", " "));
                }
             }
             allSubjects.put(subject);
-            JSONObject all=new JSONObject();
+            JSONObject all = new JSONObject();
             all.put("subject_data",allSubjects);
             all.put("average", average);
             all.put("exam_names",theExams);
-            worker.setResponseData(all);
-            serv.messageToClient(worker);
+            return all;
         } catch (Exception ex) {
             Logger.getLogger(MarkService.class.getName()).log(Level.SEVERE, null, ex);
-        }
+            return null;
+        } 
     }
    
     private static int countOccurrences(String str,String theString){
@@ -769,6 +776,7 @@ public class MarkService implements Serviceable {
             obj.put("fee_balance", accountBalance);
             obj.put("teacher_data",teacherData);
             obj.put("formulas",design);
+            obj.put("student_trend",fetchTrend(studentId));
             //now we need to know the rank per subject
             //we need to know the total score
             //we need to know the rank in stream
@@ -1068,9 +1076,15 @@ public class MarkService implements Serviceable {
               Double mark = exists ? marks.optDouble(index) : 0;
               if(exists)
                   subjectCount++;
-              grandFormula = grandFormula.replace(subjectName, mark.toString());
-              averageFormula = averageFormula.replace(subjectName, mark.toString());
-             
+               //there is a letter before this subject name e.g henglish instead of english, so dont replace
+              int charPrevIndex = grandFormula.indexOf(subjectName) - 1;
+              int charNextIndex = grandFormula.indexOf(subjectName) + subjectName.length();
+              Character chPrev = charPrevIndex < 0  ? ' ' : grandFormula.charAt(charPrevIndex);
+              Character chNext = charNextIndex == grandFormula.length() ? ' ' : grandFormula.charAt(charNextIndex);
+              if( !(Pattern.matches("[a-zA-Z_]",chPrev.toString())  ||  Pattern.matches("[a-zA-Z_]",chNext.toString())) ){
+                grandFormula = grandFormula.replace(subjectName, mark.toString());
+                averageFormula = averageFormula.replace(subjectName, mark.toString());
+              } 
             }
             grandFormula = grandFormula.replace("allSubjectsLength", ((Integer)subjectNames.length()).toString() );
             grandFormula = grandFormula.replace("enteredSubjectsLength", subjectCount.toString());
@@ -1078,7 +1092,6 @@ public class MarkService implements Serviceable {
             averageFormula = averageFormula.replace("allSubjectsLength", ((Integer)subjectNames.length()).toString() );
             averageFormula = averageFormula.replace("enteredSubjectsLength", subjectCount.toString());
             averageFormula = averageFormula.replace("currentStream","'"+streamName+"'");
-          
             Double total = (Double) engine.eval(grandFormula);
             Double average = (Double) engine.eval(averageFormula);
        

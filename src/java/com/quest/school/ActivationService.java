@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.json.JSONArray;
+import org.json.JSONException;
 import org.json.JSONObject;
 
 
@@ -59,6 +60,7 @@ public class ActivationService implements Serviceable {
         JSONObject data = db.query("SELECT * FROM ACTIVATION_DATA");
         worker.setResponseData(data);
         serv.messageToClient(worker);
+    
     }
     
     @Endpoint(name="validate_key")
@@ -83,6 +85,10 @@ public class ActivationService implements Serviceable {
                     data.put("expiry", activeData[0]+"00000");
                     data.put("services",services);
                     action.saveAction();
+                    String vNo = serv.getConfig().getInitParameter("version-no");
+                    String vName = serv.getConfig().getInitParameter("version-name");
+                    data.put("version_no", vNo);
+                    data.put("version_name", vName);
                     worker.setResponseData(data);
                     serv.messageToClient(worker);
                 } catch (Exception ex) {

@@ -838,7 +838,7 @@ public class InternetMessageService implements Serviceable {
  
   
   
-  private static JSONObject sendRemoteData(JSONObject data,String remoteUrl){
+  public static JSONObject sendRemoteData(JSONObject data,String remoteUrl){
         try {
             String urlParams = URLEncoder.encode("json", "UTF-8") + "=" + URLEncoder.encode(data.toString(), "UTF-8");
             URL url = new URL(remoteUrl);

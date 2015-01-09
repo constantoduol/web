@@ -134,7 +134,7 @@ public class ServerLink extends HttpServlet {
        String [] currentUser=new String[2];
        try{
            Cookie[] cookies = request.getCookies();
-           if(cookies==null || cookies.length==0){
+           if(cookies == null || cookies.length == 0){
            redirect(response, "index.html");
            return null;
            }
@@ -168,7 +168,6 @@ public class ServerLink extends HttpServlet {
        }
       catch(Exception e){
         return null;
-        
       }
     }
     

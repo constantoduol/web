@@ -1,0 +1,5 @@
+2nd Jan 2015
+--------------------
+1. in mark sheet design view show only subjects that belong to that class
+2. edit school details
+3. 

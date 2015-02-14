@@ -36,6 +36,7 @@ import java.util.concurrent.ConcurrentHashMap;
 import java.util.logging.Level;
 import javax.servlet.ServletConfig;
 import javax.servlet.http.HttpSession;
+import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
@@ -151,7 +152,7 @@ import org.json.JSONObject;
 
 public class Server {
     
-    private static ConcurrentHashMap<String,HttpSession> sessions=new ConcurrentHashMap();
+    private static ConcurrentHashMap<String,HttpSession> sessions = new ConcurrentHashMap();
     
     private double clientTimeout;
     /*
@@ -162,7 +163,7 @@ public class Server {
     /*
      * this contains the services available to the server
      */
-    private JSONObject services;
+    private static HashMap<String,ArrayList> services;
     
     
     /*
@@ -260,8 +261,7 @@ public class Server {
            this.database = new Database(name);
        }
        startService("com.quest.access.useraccess.services.UserService");
-       startService("com.quest.access.useraccess.services.PrivilegeService");
-       this.services = getServices(); //occurs after database starting 
+       startService("com.quest.access.useraccess.services.PrivilegeService"); 
      }
    
    
@@ -403,18 +403,7 @@ public class Server {
     }
 }
 
-/**
- * this method gets the permanent privileges associated with this server
- * @return an array of permanent privileges
- */
-    public  PermanentPrivilege[] getPermanentPrivileges(){
-        Iterator iter=permanentPrivileges.values().iterator();
-        PermanentPrivilege[] group=new PermanentPrivilege[permanentPrivileges.size()];
-        for(int x=0; iter.hasNext() ;x++){
-           group[x]=(PermanentPrivilege)iter.next();
-        }
-        return group;
-    }
+
 
 
 
@@ -425,29 +414,8 @@ public class Server {
         return this.database;
     }
 
-/**
- * this method returns a concurrent hashmap containing this server's permanent privileges
- */
-    public ConcurrentHashMap getPermanentPrivilegeList(){
-        return this.permanentPrivileges;
-    }
 
-/**
- * this method adds to this server's privilege list
- * @param priv the permanent privilege to be added to this server's privilege list
- */
-    public void addToPrivilegeList(PermanentPrivilege priv){
-        this.permanentPrivileges.put(priv.getName(), priv); 
-    }
 
-/**
- * this method removes a privilege from this server's privilege list
- * @param priv the permanent privilege to be removed from this list
- */
-
-    public void removeFromPrivilegeList(PermanentPrivilege priv){
-        this.permanentPrivileges.remove(priv.getName()); 
-    }
 
 /**
  * returns a string representation of a server
@@ -459,42 +427,25 @@ public class Server {
         return "Server["+this.name+"]";
     }
 
-/**
- * this method reloads the services of a server to include newly created services
- * the method triggers a fresh read from the database 
- */
- 
-    public void refreshServices(){
-        this.services = getServices();
-    }
-
-
    /**
     * this method gets all the services belonging to a server in a hash map with the
     * key as the service name and the value as the location of the service class
     * @param serv the server in which this service is meant to be accessed by clients
     */
-   public final JSONObject getServices(){
-       JSONObject servics = this.getDatabase().query("SELECT SERVICE_NAME, SERVICE_LOCATION FROM SERVICES");
-       return servics;
+   public static  HashMap getServices(){
+       return services;
    }
 /**
  * This method starts all the services created on the database and 
  * creates a registry mapping message requests to the appropriate methods
  */
     public final void startAllServices(){
-        Logger.toConsole("Starting services now....", this.getClass());
-        JSONObject serviceList = getServices();
-        Iterator iter = serviceList.optJSONArray("SERVICE_LOCATION").toList().iterator();
         String externalServices = config.getInitParameter("external-services");
         String initUsers = config.getInitParameter("grant-init-users");
         String initPrivs = config.getInitParameter("grant-init-privileges");
         initExternalServices(externalServices);
         grantInitPrivileges(initUsers, initPrivs);
-        for( ;iter.hasNext(); ){
-           String serviceLocation = (String)iter.next();
-           startService(serviceLocation);
-        }
+   
        
     }
 
@@ -529,30 +480,32 @@ public class Server {
 
     private void initExternalServices(String services){
         StringTokenizer token = new StringTokenizer(services,",");
+        HashMap serviceMap = new HashMap();
         while(token.hasMoreTokens()){
-          String serviceLocation = token.nextToken().trim();
-          try{
-             Class serviceClass = Class.forName(serviceLocation.trim());
-             WebService webService = (WebService)serviceClass.getAnnotation(WebService.class);
-             if(webService != null){
-                 int level = webService.level();
-                 String serviceName = webService.name();
-                 SystemAction action = new SystemAction(this, "CREATE SERVICE : "+serviceName);
-                 Service service = new Service(serviceName,serviceClass,this, level,action);
-                 service.runOnCreate();
-             }
-            
-           }
-          catch(Exception e){
-              try {
-                  Service existingService = Service.getExistingService(serviceLocation,this);
-                  existingService.runOnCreate();
-              } catch (NonExistentServiceException ex) {
-                 
-              }
+            try {
+                String serviceLocation = token.nextToken().trim();
+                Class serviceClass = Class.forName(serviceLocation.trim());
+                WebService webService = (WebService)serviceClass.getAnnotation(WebService.class);
+                if(webService != null){
+                       ArrayList values = new ArrayList();
+                       int level = webService.level();
+                       String serviceName = webService.name();
+                       SystemAction action = new SystemAction(this, "CREATE SERVICE : "+serviceName);
+                       Service service = new Service(serviceName,serviceClass,this, level,action);
+                       service.runOnCreate();
+                       values.add(serviceLocation);
+                       values.add(level);
+                       values.add(webService.privileged());
+                       serviceMap.put(serviceName,values);
+                   }
+               startService(serviceLocation);
+            } catch (Exception ex) {
+                java.util.logging.Logger.getLogger(Server.class.getName()).log(Level.SEVERE, null, ex);
+            }
           }
+         this.services = serviceMap;
         }
-    }
+    
     
     private void initServiceModel(Class serviceClass){
        Annotation [] annotations = serviceClass.getAnnotations();
@@ -644,17 +597,17 @@ public class Server {
      */
     public void processClientRequest(ClientWorker worker){
        try{
-          JSONObject serviceList = this.services;
+          HashMap serviceList = this.services;
           String service = worker.getService();
-          int location = serviceList.optJSONArray("SERVICE_NAME").toList().indexOf(service);
-          if(location > -1){
-             String serviceLocation = (String)serviceList.optJSONArray("SERVICE_LOCATION").optString(location);
+          ArrayList values = (ArrayList) serviceList.get(service);
+          if(values != null){
              try{
+                 String location = (String) values.get(0);
                  PermanentPrivilege priv = PermanentPrivilege.getPrivilege(service, this);
                  Resource res = new Resource(Serviceable.class);
                   //TODO make more service instances available in future
-                 Object serviceInstance = this.runtimeServices.get(serviceLocation); //we have only one instance of this service
-                 Serviceable serviceProx = (Serviceable)this.proxify(serviceInstance,res,worker,priv,serviceLocation);
+                 Object serviceInstance = this.runtimeServices.get(location); //we have only one instance of this service
+                 Serviceable serviceProx = (Serviceable)this.proxify(serviceInstance,res,worker,priv,location);
                  serviceProx.service();
                }
             catch(Exception e){
@@ -1199,7 +1152,7 @@ private class PrivilegeHandler implements InvocationHandler, java.io.Serializabl
         String key = message+"_"+serviceName;
         Object[] data = sharedRegistry.get(key);
         if(data == null)
-          return null;
+            return null;
         String methodKey = data[0]+"_"+data[1];
         Method method = serviceRegistry.get(methodKey);
         Object [] shareData = new Object[]{data[0],data[1],method}; // messagename, service instance,method
@@ -1210,9 +1163,10 @@ private class PrivilegeHandler implements InvocationHandler, java.io.Serializabl
     @Override
     public Object invoke(Object proxy, Method method, Object[] args) throws Throwable {
        SecurityException ex = new SecurityException("Access denied");
-       boolean permContains;
+       boolean permContains = false;
        Object[] sharedData;
        String uName = null;
+       String privState = Server.services.get(worker.getService()).get(2).toString();
        try{
             // permanent privilege could be disabled
             if(!this.priv.getAccessState()){
@@ -1228,23 +1182,28 @@ private class PrivilegeHandler implements InvocationHandler, java.io.Serializabl
                exceptionToClient(worker);
                return null;
              }
-           
-            HttpSession ses = worker.getSession();
-            uName=(String)ses.getAttribute("username");
-            HashMap privileges = (HashMap)ses.getAttribute("privileges");
-            String rGroup = this.priv.getName();
-            String resos = this.res.getResourceName();
-            ArrayList resList = (ArrayList)privileges.get(rGroup);
-            permContains = resList.contains(resos); // this user has a permanent privilege
+            if(privState.equals("yes")){
+                HttpSession ses = worker.getSession();
+                uName= (String)ses.getAttribute("username");
+                HashMap privileges = (HashMap)ses.getAttribute("privileges");
+                String rGroup = this.priv.getName();
+                String resos = this.res.getResourceName();
+                ArrayList resList = (ArrayList)privileges.get(rGroup);
+                permContains = resList.contains(resos); // this user has a permanent privilege 
+            }
+            else {
+              uName = "anonymous";  
+            }
+         
             sharedData = getSharedData();
-           }
+       }
        catch(Exception e){
            Logger.toConsole("No privileges found for user : "+uName, Server.class);
            worker.setResponseData(ex);
            exceptionToClient(worker);
            return null;
        }
-       if(permContains){
+       if(permContains || privState.equals("no")){
            try{
                
                Method met = serviceRegistry.get(worker.getMessage()+"_"+clazz);

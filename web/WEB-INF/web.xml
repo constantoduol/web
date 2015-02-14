@@ -5,7 +5,7 @@
         <servlet-class>com.quest.servlets.ServerLink</servlet-class>
           <init-param>
             <param-name>version-no</param-name>
-            <param-value>1.0.0.0</param-value>
+            <param-value>1.0.0.1</param-value>
          </init-param>
            <init-param>
             <param-name>version-name</param-name>
@@ -61,12 +61,14 @@
              com.quest.school.EditMarkService,
              com.quest.school.AccountService,
              com.quest.school.ActivationService,
-             com.quest.school.QuestionService
+             com.quest.school.QuestionService,
+             com.quest.extensions.TestService,
+             com.quest.extensions.Crawler1
             </param-value>
         </init-param>
          <init-param>
             <param-name>grant-init-privileges</param-name>
-            <param-value>student_service,mark_service,message_service,edit_mark_service,edit_student_service,account_service,activation_service,question_service</param-value>
+            <param-value>student_service,mark_service,message_service,edit_mark_service,edit_student_service,account_service,activation_service</param-value>
         </init-param>
          <init-param>
             <param-name>grant-init-users</param-name>

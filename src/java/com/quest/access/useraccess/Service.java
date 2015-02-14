@@ -45,7 +45,8 @@ import java.util.logging.Logger;
  * 
  */
 public class Service {
-    private static ConcurrentHashMap<String,Service> serviceCache=new ConcurrentHashMap();
+    
+
     /**
      * this is the unique id of a service
      */
@@ -77,35 +78,21 @@ public class Service {
      * @param serv this is the server in whose scope this service is defined, therefore a different
      *        server cannot recognize this service because it does not belong to it
      */
-   public Service(String name, Class serviceClass, Server serv,int level, Action action) throws ServiceExistsException{
-        if(Database.ifValueExists(name,"SERVICES","SERVICE_NAME", serv.getDatabase())){
-            // service already exists
-            throw new ServiceExistsException();
-         }
-         UniqueRandom ur=new UniqueRandom(10);
-         String serviceID=ur.nextRandom();
-         while(Database.ifValueExists(serviceID,"SERVICES", "SERVICE_ID", serv.getDatabase())){
-             serviceID=ur.nextRandom();
-          }
-         this.serviceId=serviceID;
-         this.serviceClass=serviceClass;
-         String dbName=serv.getDatabase().getDatabaseName();
-         Database.executeQuery("INSERT INTO SERVICES VALUES(?,?,?,NOW(),?)",dbName, serviceID,name,serviceClass.getName(),action.getActionID());
-         action.saveAction();
-         PermanentPrivilege privilege;
-        try {
-          privilege = new PermanentPrivilege(name, level,serv,action);
-          this.priv=privilege;
-          Resource res=new Resource(Serviceable.class);
-          priv.initialize(new Resource[]{res});
-          runOnCreate();
-        } catch (Exception ex) {
-          System.out.println(ex);     
+   public Service(String name, Class serviceClass, Server serv,int level, Action action) {
+         UniqueRandom ur = new UniqueRandom(10);
+         String serviceID = ur.nextRandom();
+         this.serviceId = serviceID;
+         this.serviceClass = serviceClass;
+         try {
+            PermanentPrivilege privilege = new PermanentPrivilege(name, level,serv,action);
+             this.priv = privilege;
+             Resource res = new Resource(Serviceable.class);
+             priv.initialize(new Resource[]{res});
+             runOnCreate();
+             serv.startService(serviceClass.getName());
+          } catch (Exception ex) {
+              System.out.println(ex);     
         }
-         //refresh this server's services
-         serv.refreshServices();
-         System.out.println("Service "+name+" created");
-         serv.startService(serviceClass.getName());
    }
    
    public void runOnCreate(){
@@ -181,85 +168,4 @@ public class Service {
    }
    
    
-   /**
-    * this method returns an instance of an existing service
-    * @param serviceName the name the service was given when it was created
-    * @param serv the server the service was created in
-    */
-   
-    public static Service getExistingService(String serviceName, Server serv) throws NonExistentServiceException {
-           if(serviceCache.containsKey(serviceName)){
-               return serviceCache.get(serviceName);
-              }
-              String name="";
-              String serviceLocation="";
-              String serviceID="";
-              Class serviceClazz=null;
-              String dbName=serv.getDatabase().getDatabaseName();
-              ResultSet set = Database.executeQuery("SELECT * FROM SERVICES WHERE SERVICE_NAME=?", dbName, serviceName);
-             
-             try{
-                    while(set.next()){
-                        name=set.getString("SERVICE_NAME"); 
-                        serviceLocation=set.getString("SERVICE_LOCATION");
-                        serviceID=set.getString("SERVICE_ID");
-                      }  
-                
-                   if(name.equals(serviceName)){
-                       PermanentPrivilege privilege = PermanentPrivilege.getPrivilege(serviceName, serv);
-                      try{
-                         serviceClazz=Class.forName(serviceLocation);
-                      }
-                      catch(ClassNotFoundException e){
-                        serviceClazz=Class.forName(serviceLocation,false,new ExtensionClassLoader(serv.getExtensionDir()));  
-                      }
-                       Service serviz=new Service(name, privilege, serviceClazz,serviceID);
-                       serviceCache.put(name, serviz);
-                       return serviz;
-                        
-                    }
-                  else{
-                     throw new NonExistentServiceException();
-                  }
-                
-             }
-           catch(Exception e){
-               throw new NonExistentServiceException();
-           }
-      }
-    
-    /**
-     * this method deletes a service completely and the privilege associated with it
-     * and if any users were assigned this privilege the privilege is revoked
-     * @param serviceName the name of the service to delete
-     * @param serv the server the service was originally created in
-     */
-    public static void deleteService(String serviceName, Server serv) throws NonExistentPermanentPrivilegeException{
-        String dbName=serv.getDatabase().getDatabaseName();
-         Database.executeQuery("DELETE FROM SERVICES WHERE SERVICE_NAME=?",dbName,serviceName);
-          PermanentPrivilege.deletePrivilege(serviceName, serv);
-         removeFromCache(serviceName);
-      }
-    
-    /**
-     * this method removes the service mapped by the specified service name
-     * from the service cache
-     * @param name the name of the service to be removed from the cache
-     */
-    public static void removeFromCache(String name){
-        serviceCache.remove(name);
-    }
-    
-    /**
-     * this method empties all cached services
-     */
-    public static void emptyServiceCache(){
-       serviceCache.clear();   
-    }
-    
-    
-   
-   
-   }
-   
-
+}

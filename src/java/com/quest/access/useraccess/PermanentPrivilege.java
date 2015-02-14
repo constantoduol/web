@@ -3,6 +3,7 @@ package com.quest.access.useraccess;
 
 import com.quest.access.common.Logger;
 import com.quest.access.common.UniqueRandom;
+import com.quest.access.common.io;
 import com.quest.access.common.mysql.Database;
 import com.quest.access.control.Server;
 import com.quest.access.useraccess.verification.Action;
@@ -248,7 +249,6 @@ public class PermanentPrivilege extends ResourceGroup implements java.io.Seriali
                }
           if(nam.equals(name)){
                PermanentPrivilege pp=new PermanentPrivilege(name, level,serv,accState, privID,created);
-               serv.addToPrivilegeList(pp);
                privilegeCache.put(name,pp);
                return pp;
              }
@@ -267,30 +267,26 @@ public class PermanentPrivilege extends ResourceGroup implements java.io.Seriali
      * this method saves the resources in a static resource group
      */
     private static void saveResources(PermanentPrivilege group, Server serv){
-      String dbName=serv.getDatabase().getDatabaseName();
-      for(int x=0; x<group.size(); x++){
-        UniqueRandom ur=new UniqueRandom(7);
-         String rID = ur.nextRandom();
+        String dbName = serv.getDatabase().getDatabaseName();
+        for(int x = 0; x < group.size(); x++){
+            UniqueRandom ur = new UniqueRandom(7);
+            String rID = ur.nextRandom();
             ResultSet set = Database.executeQuery("SELECT GROUP_ID,NAME FROM RESOURCES WHERE GROUP_ID=? AND NAME=? ",dbName,group.getPermanentPrivilegeID(),(String)group.getMemberNames().get(x));
-           try{
-            while(set.next()){
+            try{
+                while(set.next()){
                     String id = set.getString("GROUP_ID");
                     String name = set.getString("NAME");
                     if(name!=null && id!=null){
                         // this means they already exist
                         return;
                     }
-              }
-            set.close();
+               }
+              set.close();
            }
             catch(Exception e){
               System.out.println(e);
            }
-          while(Database.ifValueExists(rID, "RESOURCES", "RESOURCE_ID", serv.getDatabase())){
-               rID=ur.nextRandom();
-           }
-          Database.executeQuery("INSERT INTO RESOURCES VALUES(?,?,?, NOW())",dbName,rID,group.getPermanentPrivilegeID(),(String)group.getMemberNames().get(x));
-         System.out.println("Resources saved"); 
+           Database.executeQuery("INSERT INTO RESOURCES VALUES(?,?,?, NOW())",dbName,rID,group.getPermanentPrivilegeID(),(String)group.getMemberNames().get(x));
       }
     }
     
@@ -300,23 +296,20 @@ public class PermanentPrivilege extends ResourceGroup implements java.io.Seriali
    
     
     private void savePrivilege(PermanentPrivilege priv, Action action) throws PermanentPrivilegeExistsException{
-      String dbName=this.serv.getDatabase().getDatabaseName();
-       UniqueRandom ur=new UniqueRandom(10);
-         String privID = ur.nextRandom();
-           while(Database.ifValueExists(privID, "RESOURCE_GROUPS", "GROUP_ID", this.serv.getDatabase())){
-               privID=ur.nextRandom();
-           }
-           this.privilegeID=privID;
-           created=new Date();
-           if(Database.ifValueExists(priv.getName(),"RESOURCE_GROUPS","NAME", this.serv.getDatabase())){
-               System.out.println("Privilege already exists");
-              throw new PermanentPrivilegeExistsException();
-           }
-          Database.executeQuery("INSERT INTO RESOURCE_GROUPS"
+        String dbName=this.serv.getDatabase().getDatabaseName();
+        UniqueRandom ur=new UniqueRandom(10);
+        String privID = ur.nextRandom();
+        this.privilegeID=privID;
+        this.created=new Date();
+        if(Database.ifValueExists(priv.getName(),"RESOURCE_GROUPS","NAME", this.serv.getDatabase())){
+            io.out("Privilege already exists");
+        }
+        else{
+            Database.executeQuery("INSERT INTO RESOURCE_GROUPS"
                   + " VALUES(?,?,?,1, NOW(),?)",dbName,privID,priv.getName(),priv.getGroupLevel().toString(),action.getActionID());
-          action.saveAction();
-        System.out.println("Permanent privilege saved");
-       this.serv.addToPrivilegeList(priv);
+            action.saveAction();
+            System.out.println("Permanent privilege saved");
+        }
 }
     
     /**
@@ -416,8 +409,7 @@ public class PermanentPrivilege extends ResourceGroup implements java.io.Seriali
           
             Database.executeQuery("DELETE FROM RESOURCE_GROUPS WHERE GROUP_ID=?", dbName, privID);
             Database.executeQuery("DELETE FROM RESOURCES WHERE GROUP_ID=?", dbName, privID);
-           // Database.executeQuery("DELETE FROM PRIVILEGES WHERE GROUP_ID=?", dbName, privID);
-            serv.removeFromPrivilegeList(privilege);
+           // Database.executeQuery("DELETE FROM PRIVILEGES WHERE GROUP_ID=?", dbName, privID);;
             //TODO make sure when a privilege is revoked the superiority of a user is updated
             ResultSet set1 = Database.executeQuery("SELECT USER_NAME FROM PRIVILEGES, "
                     + "USERS WHERE GROUP_ID=? AND USERS.USER_ID=PRIVILEGES.USER_ID",dbName,privID);

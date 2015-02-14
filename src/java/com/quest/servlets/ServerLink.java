@@ -5,10 +5,12 @@
 package com.quest.servlets;
 
 import com.quest.access.common.Launcher;
+import com.quest.access.common.io;
 import com.quest.access.common.mysql.Database;
 import com.quest.access.control.Server;
 import java.io.IOException;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import javax.servlet.AsyncContext; 
@@ -63,31 +65,23 @@ public class ServerLink extends HttpServlet {
         try { 
              response.setContentType("text/html;charset=UTF-8");
              String json = request.getParameter("json");
-             if(json==null){
+             if(json == null)
                 return;
-             }
-             HttpSession session=request.getSession();
-             String [] currentUser;
+             HttpSession session = request.getSession();
             //session, request, response
-             JSONObject obj=new JSONObject(json);
+             JSONObject obj = new JSONObject(json);
              JSONObject headers = obj.optJSONObject("request_header");
-             String msg=headers.optString("request_msg");
+             String msg = headers.optString("request_msg");
+             String sessionId = headers.optString("session_id");
+             boolean authValid = session.getId().equals(sessionId) ? true : false;
              int index = skippablesMessages.indexOf(msg);
-             if(index > -1 && skippablesServices.get(index).equals("")){
-                 // when someone is changing his password we dont expect them to be logged in
-                 //when someone is logging in we dont expect them to be logged in
-                 currentUser=new String[]{"dummy"};
-             }
-             else{
-               currentUser = ensureIntegrity(request,response,session);   
-             }
              String service = headers.optString("request_svc");
              JSONObject requestData = (JSONObject)obj.optJSONObject("request_object");
              AsyncContext ctx = request.startAsync(request, response);
              ctx.setTimeout(120000);
              ClientWorker worker = new ClientWorker(msg, service, requestData, session, ctx,response);
-             if(index>-1 && skippablesServices.get(index).equals(service)){
-              
+             if(index >- 1 && skippablesServices.get(index).equals(service)){
+                authValid = true;
              }
              else if(!applicationIsValid){
                  Logger.getLogger(ServerLink.class.getName()).log(Level.SEVERE, "Application is not activated or has expired", (Object[])null);
@@ -106,74 +100,36 @@ public class ServerLink extends HttpServlet {
                  
              }
              */
-             
-             if(currentUser!=null){
+             HashMap services = Server.getServices();
+             String privState = "";
+             if(services != null){
+                ArrayList serviceList = (ArrayList) services.get(service);
+                if(serviceList != null){
+                   privState = serviceList.get(2).toString();
+                }
+             }
+             if(authValid || privState.equals("no")){
                 ctx.start(worker);   
              }
              else{
+                sendMessage(response);
                 ctx.complete();
              }
-            
         } catch (JSONException ex) {
             Logger.getLogger(ServerLink.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
     
-    public static void redirect(HttpServletResponse response,String address){
+    public static void sendMessage(HttpServletResponse response){
         try {
             JSONObject object=new JSONObject();  
-            object.put("request_msg","redirect");
-            object.put("url",address);
+            object.put("request_msg","auth_required");
+            object.put("data","to use this service you need a valid auth token");
             response.getWriter().print(object);
         } catch (Exception ex) {
             Logger.getLogger(ServerLink.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
-    
-    private String[] ensureIntegrity(HttpServletRequest request,HttpServletResponse response,HttpSession ses){
-       String [] currentUser=new String[2];
-       try{
-           Cookie[] cookies = request.getCookies();
-           if(cookies == null || cookies.length == 0){
-           redirect(response, "index.html");
-           return null;
-           }
-           String username;
-           String rand = null;
-           for(int x=0; x<cookies.length; x++){
-               String name=cookies[x].getName();
-               String value=cookies[x].getValue();
-               if("user".equals(name)){
-                   username=value;
-                   currentUser[0]=username;
-               }
-               else if(name.equals("rand")){
-                   rand=value;
-                   currentUser[1]=rand;
-               }
-           }
-           if(ses==null){
-               redirect(response, "index.html");
-               return null;
-           }
-           if(ses.getId().equals(rand)){
-           // this is the right user
-               return currentUser;
-           }
-           else{
-                //make the user login again
-               redirect(response, "index.html");
-               return null;
-           }
-       }
-      catch(Exception e){
-        return null;
-      }
-    }
-    
-    
-  
-
  
     // <editor-fold defaultstate="collapsed" desc="HttpServlet methods. Click on the + sign on the left to edit the code.">
     /** 
@@ -236,6 +192,7 @@ public class ServerLink extends HttpServlet {
             server.setDefaultPassWord(defPass);
             server.createNativeServices();
             server.startAllServices();
+            
             Database db=Database.getExistingDatabase("school_data");
             JSONObject data = db.query("SELECT USER_EMAIL, ACTIVATION_KEY FROM ACTIVATION_DATA");
             String activationKey = (String) data.optJSONArray("ACTIVATION_KEY").opt(0);

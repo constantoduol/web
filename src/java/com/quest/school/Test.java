@@ -4,6 +4,9 @@
  */
 package com.quest.school;
 
+import com.quest.access.common.io;
+import com.quest.access.useraccess.Serviceable;
+import com.quest.access.useraccess.services.annotations.WebService;
 import java.util.logging.Level;
 import java.util.logging.Logger;
 import org.json.JSONException;
@@ -13,20 +16,12 @@ import org.json.JSONObject;
  *
  * @author connie
  */
-public class Test {
-    public static void main(String [] args){
-        try {
-            JSONObject loginData = new JSONObject();
-            loginData.put("username","root");
-            loginData.put("password","pasnipop1");
-            JSONObject loginResponse = makeRequest("login","", loginData);
-            JSONObject subData = new JSONObject();
-            makeRequest("all_subjects","student_service", subData);
-        } catch (JSONException ex) {
-            Logger.getLogger(Test.class.getName()).log(Level.SEVERE, null, ex);
-        }
-       
-    }
+
+@WebService(name="quest_test_service")
+public class Test implements Serviceable {
+    
+    private static String auth_token = "";
+    
     
     public static JSONObject makeRequest(String msg,String svc,JSONObject data){
         try {
@@ -34,6 +29,7 @@ public class Test {
             JSONObject reqHeaders = new JSONObject();
             reqHeaders.put("request_msg",msg);
             reqHeaders.put("request_svc",svc);
+            reqHeaders.put("session_id",auth_token);
             message.put("request_header",reqHeaders);
             message.put("request_object",data);
             JSONObject response = InternetMessageService.sendRemoteData(message, "http://127.0.0.1:8080/web/server");
@@ -41,6 +37,32 @@ public class Test {
         } catch (JSONException ex) {
             Logger.getLogger(Test.class.getName()).log(Level.SEVERE, null, ex);
             return null;
+        }
+    }
+
+    @Override
+    public void service() {
+      
+    }
+
+    @Override
+    public void onCreate() {
+        
+    }
+
+    @Override
+    public void onStart() {
+        try {
+            System.out.println("test service starting");
+            JSONObject loginData = new JSONObject();
+            loginData.put("username","root");
+            loginData.put("password","pasnipop1");
+            JSONObject loginResponse = makeRequest("login","", loginData);
+               // JSONObject resp = makeRequest("read_attendance","class_service", subData);
+            auth_token = loginResponse.optJSONObject("response").optString("rand");
+            io.out("api authorization : "+auth_token);
+        } catch (Exception ex) {
+            Logger.getLogger(Test.class.getName()).log(Level.SEVERE, null, ex);
         }
     }
 }

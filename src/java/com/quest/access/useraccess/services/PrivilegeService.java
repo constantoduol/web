@@ -152,7 +152,7 @@ public class PrivilegeService implements Serviceable {
               serv.exceptionToClient(worker);
               return;
             }
-            Service.deleteService(name, serv);
+           // Service.deleteService(name, serv);
             worker.setResponseData(Message.SUCCESS);
             serv.messageToClient(worker);
             UserAction action=new UserAction(serv,worker,"DELETE_PRIVILEGE "+name+"");
@@ -296,7 +296,7 @@ public class PrivilegeService implements Serviceable {
               serv.exceptionToClient(worker);
               return;
             }
-            Service.deleteService(name, serv);
+           // Service.deleteService(name, serv);
             worker.setResponseData(Message.SUCCESS);
             serv.messageToClient(worker);
             UserAction action=new UserAction(serv,worker,"DELETE_SERVICE "+name+"");
@@ -390,6 +390,7 @@ public class PrivilegeService implements Serviceable {
     
     
     
+    /*
     @Endpoint(name="view_service")
     public  void viewService(Server serv,ClientWorker worker){
        JSONObject requestData = worker.getRequestData();
@@ -414,7 +415,7 @@ public class PrivilegeService implements Serviceable {
         }
         
        }
-    
+    */
    
    
     

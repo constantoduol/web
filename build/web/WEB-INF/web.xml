@@ -5,7 +5,7 @@
         <servlet-class>com.quest.servlets.ServerLink</servlet-class>
           <init-param>
             <param-name>version-no</param-name>
-            <param-value>1.0.0.1</param-value>
+            <param-value>1.0.0.2</param-value>
          </init-param>
            <init-param>
             <param-name>version-name</param-name>

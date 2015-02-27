@@ -5,7 +5,6 @@ package com.quest.school;
  */
 
 import com.quest.access.common.UniqueRandom;
-import com.quest.access.common.io;
 import com.quest.access.common.mysql.DataType;
 import com.quest.access.common.mysql.Database;
 import com.quest.access.common.mysql.NonExistentDatabaseException;
@@ -18,7 +17,6 @@ import com.quest.access.useraccess.services.annotations.WebService;
 import com.quest.access.useraccess.verification.UserAction;
 import com.quest.servlets.ClientWorker;
 import java.util.ArrayList;
-import java.util.HashMap;
 import java.util.Iterator;
 import java.util.List;
 import java.util.StringTokenizer;
@@ -27,7 +25,6 @@ import java.util.logging.Logger;
 import java.util.regex.Pattern;
 import javax.script.ScriptEngine;
 import javax.script.ScriptEngineManager;
-import javax.script.ScriptException;
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -1026,6 +1023,11 @@ public class MarkService implements Serviceable {
                   String paperId = mark.optString(0);
                   String subjectId = mark.optString(1);
                   String markValue = mark.optString(2);
+                  if(markValue.equals("-1")){
+                      db.query().delete().from("MARK_DATA").where("EXAM_ID='"+examId+"' AND STUDENT_ID='"+studentId+"' AND SUBJECT_ID='"+subjectId+"' AND PAPER_ID='"+paperId+"'").execute();
+                     // db.query("DELETE FROM MARK_DATA WHERE EXAM_ID=? AND STUDENT_ID=? AND SUBJECT_ID=? AND PAPER_ID=?", examId,studentId,subjectId,paperId);
+                      continue;
+                  }
                   int subjectIndex = ((JSONObject)data[4]).optJSONArray("ID").toList().indexOf(subjectId);
                   String subjectName = ((JSONObject)data[4]).optJSONArray("SUBJECT_NAME").optString(subjectIndex);
                   grand = grand.replace(subjectName,markValue);
